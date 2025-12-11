@@ -19,7 +19,7 @@ let db;
 (async () => {
   db = await open({ filename: "./db.sqlite", driver: sqlite3.Database });
 
-  // Create tables
+  // Użytkownicy
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,27 +29,67 @@ let db;
     );
   `);
 
+  // Grupy paczkomatów (lokalizacje)
   await db.exec(`
-    CREATE TABLE IF NOT EXISTS lockers (
+    CREATE TABLE IF NOT EXISTS locker_groups (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      status TEXT DEFAULT 'free',         -- free | occupied | broken
-      packageId TEXT,
-      assignedTo INTEGER,
-      openedBy INTEGER,
-      lastAction TEXT,
-      updatedAt TEXT
+      name TEXT NOT NULL,
+      location TEXT
     );
   `);
 
-  // ✅ Seed lockers if none exist
-  const count = await db.get("SELECT COUNT(*) AS c FROM lockers");
-  if (!count || count.c === 0) {
-    for (let i = 0; i < 5; i++) {
-      await db.run("INSERT INTO lockers (status) VALUES ('free')");
+  // Szafki w grupach
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS lockers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      groupId INTEGER,
+      status TEXT DEFAULT 'free',            -- free | occupied | broken | inTransit
+      packageId TEXT,
+      assignedTo INTEGER,
+      openedBy INTEGER,
+      destinationGroupId INTEGER,
+      lastAction TEXT,
+      updatedAt TEXT,
+      FOREIGN KEY (groupId) REFERENCES locker_groups(id)
+    );
+  `);
+
+  const groupCount = await db.get("SELECT COUNT(*) AS c FROM locker_groups");
+  if (groupCount.c === 0) {
+    await db.run(
+      "INSERT INTO locker_groups (name, location) VALUES (?, ?)",
+      ["Kraków - Długa 15", "50.05831081733932, 19.99935917523723"]
+    );
+    await db.run(
+      "INSERT INTO locker_groups (name, location) VALUES (?, ?)",
+      ["Warszawa - Marszałkowska 10", "552.231610624876026, 21.03468982125436"]
+    );
+    await db.run(
+      "INSERT INTO locker_groups (name, location) VALUES (?, ?)",
+      ["Tarnów - Nowy Świat 10", "50.012218531600666, 20.986982194583156"]
+    );
+    console.log("Seeded locker_groups");
+  }
+
+  const lockerCount = await db.get("SELECT COUNT(*) AS c FROM lockers");
+  if (lockerCount.c === 0) {
+    const lockerGroups = [
+      { groupId: 1, count: 3 },
+      { groupId: 2, count: 5 },
+      { groupId: 3, count: 2 },
+    ];
+
+    for (const group of lockerGroups) {
+      for (let i = 0; i < group.count; i++) {
+        await db.run(
+          "INSERT INTO lockers (groupId, status) VALUES (?, 'free')",
+          [group.groupId]
+        );
+      }
     }
-    console.log("Seeded 5 lockers ✅");
+    console.log("Seeded lockers in groups");
   } else {
-    console.log(`Lockers already exist (${count.c})`);
+    console.log(`Lockers already exist (${lockerCount.c})`);
   }
 
   await db.exec("PRAGMA busy_timeout = 5000;");
@@ -173,9 +213,14 @@ app.post("/api/setRole", auth, requireRole("admin"), async (req, res) => {
 });
 
 // ---------------- ADMIN: LIST USERS ----------------
-app.get("/api/users", auth, requireRole("admin"), async (req, res) => {
-  const users = await db.all("SELECT id, email, role FROM users");
-  res.json({ ok: true, users });
+app.get("/api/lockerGroups", auth, async (req, res) => {
+  try {
+    const groups = await db.all("SELECT * FROM locker_groups");
+    res.json({ ok: true, groups });
+  } catch (err) {
+    console.error("Error loading locker groups:", err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 app.get("/api/lockers", auth, async (req, res) => {
@@ -187,76 +232,216 @@ app.get("/api/lockers", auth, async (req, res) => {
   res.json({ ok: true, lockers });
 });
 
-// ---------------- USER: SEND ----------------
+// ---------------- USER: SEND (auto‑assign locker) ----------------
 app.post("/api/lockers/send", auth, requireRole("user"), async (req, res) => {
-  const locker = await db.get("SELECT * FROM lockers WHERE status='free' LIMIT 1");
-  if (!locker)
-    return res.status(400).json({ error: "No free lockers available" });
+  try {
+    const {
+      sendGroupId = 0,
+      destinationGroupId = 0,
+      recipientEmail = "",
+    } = req.body;
 
-  const pkgId = "PKG-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-  await db.run(
-    `UPDATE lockers
-     SET status='occupied',
-         packageId=?,
-         assignedTo=?,
-         openedBy=?,
-         lastAction='send',
-         updatedAt=datetime('now')
-     WHERE id=?`,
-    [pkgId, req.user.id, req.user.id, locker.id]
-  );
+    console.log("SEND request:", req.body);
 
-  res.json({ ok: true, message: `Locker ${locker.id} opened for sending`, packageId: pkgId });
+    // walidacja pól
+    if (!Number(sendGroupId) || !Number(destinationGroupId)) {
+      return res
+        .status(400)
+        .json({ error: "Missing locker group selection." });
+    }
+
+    if (!recipientEmail.trim()) {
+      return res.status(400).json({ error: "Missing recipient email." });
+    }
+
+    // znajdź odbiorcę
+    const recipient = await db.get("SELECT id FROM users WHERE email = ?", [
+      recipientEmail,
+    ]);
+    if (!recipient)
+      return res.status(404).json({ error: "Recipient not found" });
+
+    // 🧩 znajdź pierwszą wolną skrytkę w wybranym paczkomacie
+    const locker = await db.get(
+      "SELECT * FROM lockers WHERE groupId=? AND status='free' LIMIT 1",
+      [sendGroupId]
+    );
+
+    if (!locker) {
+      return res
+        .status(400)
+        .json({ error: "No free lockers available in this location" });
+    }
+
+    // generujemy ID paczki
+    const pkgId =
+      "PKG-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    // aktualizacja skrytki – zajmujemy ją
+    await db.run(
+      `UPDATE lockers
+         SET status='occupied',
+             packageId=?,
+             assignedTo=?,
+             openedBy=?,
+             destinationGroupId=?,
+             lastAction='send',
+             updatedAt=datetime('now')
+       WHERE id=?`,
+      [pkgId, recipient.id, req.user.id, destinationGroupId, locker.id]
+    );
+
+    console.log(
+      `✅ Package ${pkgId} assigned to locker ${locker.id} (group ${sendGroupId}) destined for group ${destinationGroupId}`
+    );
+
+    res.json({
+      ok: true,
+      message: `Package ${pkgId} placed in locker ${locker.id} (group ${sendGroupId}) destined for group ${destinationGroupId}`,
+    });
+  } catch (err) {
+    console.error("🔥 SEND ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
+// ---------------- USER: CHECK IF HAS PENDING PACKAGE ----------------
+app.get("/api/user/pending", auth, requireRole("user"), async (req, res) => {
+  try {
+    const locker = await db.get(
+      `SELECT L.id, L.groupId, G.name AS groupName, L.packageId, L.lastAction
+       FROM lockers L
+       JOIN locker_groups G ON G.id = L.groupId
+       WHERE L.assignedTo=? AND L.status='occupied' AND L.lastAction='delivery'
+       LIMIT 1`,
+      [req.user.id]
+    );
+
+    if (!locker)
+      return res.json({ ok: true, pending: false });
+
+    res.json({
+      ok: true,
+      pending: true,
+      locker: {
+        id: locker.id,
+        groupId: locker.groupId,
+        packageId: locker.packageId,
+        location: locker.groupName,
+      },
+    });
+  } catch (err) {
+    console.error("Error checking user pending package:", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ---------------- COURIER: STATUS OVERVIEW ----------------
+app.post("/api/courier/statusByGroup", auth, requireRole("courier"), async (req, res) => {
+  const { groupId } = req.body;
+  if (!groupId) {
+    return res.status(400).json({ error: "Missing groupId" });
+  }
+
+  // Paczki gotowe do odbioru
+  const pickupReady = await db.all(
+    "SELECT * FROM lockers WHERE groupId=? AND status='occupied' AND lastAction='send'",
+    [groupId]
+  );
+
+  // Paczki do dostarczenia
+  const toDeliver = await db.all(
+    "SELECT * FROM lockers WHERE status='inTransit' AND destinationGroupId=?",
+    [groupId]
+  );
+
+  res.json({ ok: true, groupId, pickupReady, toDeliver });
+});
 // ---------------- COURIER: PICKUP ----------------
 app.post("/api/lockers/pickup", auth, requireRole("courier"), async (req, res) => {
-  const locker = await db.get(
-    "SELECT * FROM lockers WHERE status='occupied' AND lastAction='send' LIMIT 1"
-  );
-  if (!locker)
-    return res.status(404).json({ error: "No outgoing package ready for pickup" });
+  const { groupId } = req.body;
+  if (!groupId) {
+    return res.status(400).json({ error: "Missing groupId" });
+  }
 
-  await db.run(
-    `UPDATE lockers
-     SET status='free',
-         packageId=NULL,
-         assignedTo=NULL,
-         openedBy=?,
-         lastAction='pickupByCourier',
-         updatedAt=datetime('now')
-     WHERE id=?`,
-    [req.user.id, locker.id]
+  const lockers = await db.all(
+    "SELECT * FROM lockers WHERE groupId=? AND status='occupied' AND lastAction='send'",
+    [groupId]
   );
 
-  res.json({ ok: true, message: `Locker ${locker.id} opened — package picked up by courier` });
+  if (lockers.length === 0) {
+    return res.status(404).json({ error: "No outgoing packages ready here" });
+  }
+
+  for (const locker of lockers) {
+    await db.run(
+      `UPDATE lockers
+       SET status='inTransit',
+           groupId=NULL,
+           lastAction='inTransit',
+           openedBy=?,
+           updatedAt=datetime('now')
+       WHERE id=?`,
+      [req.user.id, locker.id]
+    );
+  }
+
+  res.json({
+    ok: true,
+    message: `Picked up ${lockers.length} packages from locker group ${groupId}`,
+  });
 });
 
 // ---------------- COURIER: DELIVER ----------------
 app.post("/api/lockers/deliver", auth, requireRole("courier"), async (req, res) => {
-  const { recipientEmail } = req.body;
-  const recipient = await db.get("SELECT id FROM users WHERE email = ?", [recipientEmail]);
-  if (!recipient) return res.status(404).json({ error: "Recipient not found" });
+  const { toGroupId } = req.body;
+  if (!toGroupId) {
+    return res.status(400).json({ error: "Missing toGroupId" });
+  }
 
-  const locker = await db.get("SELECT * FROM lockers WHERE status='free' LIMIT 1");
-  if (!locker)
-    return res.status(400).json({ error: "No free lockers available" });
-
-  const pkgId = "PKG-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-  await db.run(
-    `UPDATE lockers
-     SET status='occupied',
-         packageId=?,
-         assignedTo=?,
-         lastAction='delivery',
-         updatedAt=datetime('now')
-     WHERE id=?`,
-    [pkgId, recipient.id, locker.id]
+  const toDeliver = await db.all(
+    "SELECT * FROM lockers WHERE status='inTransit' AND destinationGroupId=?",
+    [toGroupId]
   );
 
-  res.json({ ok: true, message: `Delivered to locker ${locker.id}`, packageId: pkgId });
-});
+  if (toDeliver.length === 0) {
+    return res
+      .status(404)
+      .json({ error: "No packages in transit for this locker group" });
+  }
 
+  const availableLockers = await db.all(
+    "SELECT id FROM lockers WHERE groupId=? AND status='free'",
+    [toGroupId]
+  );
+
+  if (availableLockers.length < toDeliver.length) {
+    return res.status(400).json({
+      error: "Not enough free lockers in destination location",
+    });
+  }
+
+  for (let i = 0; i < toDeliver.length; i++) {
+    const pkg = toDeliver[i];
+    const targetLocker = availableLockers[i];
+
+    await db.run(
+      `UPDATE lockers
+       SET status='occupied',
+           groupId=?,
+           lastAction='delivery',
+           openedBy=?,
+           updatedAt=datetime('now')
+       WHERE id=?`,
+      [toGroupId, req.user.id, pkg.id]
+    );
+  }
+
+  res.json({
+    ok: true,
+    message: `Delivered ${toDeliver.length} packages to locker group ${toGroupId}`,
+  });
+});
 // ---------------- USER: RECEIVE ----------------
 app.post("/api/lockers/receive", auth, requireRole("user"), async (req, res) => {
   const locker = await db.get(
