@@ -1,0 +1,206 @@
+/* GLOBAL RESET */
+* {
+    box-sizing: border-box;
+}
+
+/* PODSTAWOWE WYMIARY */
+html,
+body,
+#root {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* CAŁA STRONA */
+.register-page {
+    min-height: 100vh;
+    width: 100%;
+    background: #ffffff;
+}
+
+/* GŁÓWNY LAYOUT */
+.register-main {
+    min-height: calc(100vh - 74px);
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 40px 32px;
+    gap: 24px;
+}
+
+/* LEWA STRONA */
+.register-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* DUŻE LOGO */
+.register-biglogo {
+    width: min(500px, 70%);
+    height: auto;
+}
+
+/* NAZWA MARKI */
+.register-brand {
+    margin-top: 18px;
+    font-size: 64px;
+    font-weight: 900;
+    color: #0a47a9;
+    letter-spacing: 1px;
+}
+
+/* PRAWA STRONA */
+.register-right {
+    display: flex;
+    justify-content: center;
+}
+
+/* KARTA REJESTRACJI */
+.register-card {
+    width: min(420px, 92vw);
+    text-align: center;
+}
+
+/* TYTUŁ */
+.register-title {
+    margin: 0 0 18px;
+    color: #0a47a9;
+    letter-spacing: 2px;
+    font-size: 32px;
+    font-weight: 900;
+}
+
+/* POLA INPUT */
+.field {
+    width: 100%;
+    height: 54px;
+    border-radius: 999px;
+    border: 2px solid #0a47a9;
+    padding: 0 18px;
+    font-size: 16px;
+    outline: none;
+    margin: 12px 0;
+}
+
+/* FOCUS INPUT */
+.field:focus {
+    border-color: #0a47a9;
+}
+
+/* PLACEHOLDER */
+.field::placeholder {
+    color: #8a8a8a;
+    font-weight: 600;
+}
+
+/* CHECKBOXY */
+.checkbox-group {
+    margin: 16px 0 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: left;
+}
+
+/* LABEL CHECKBOXA */
+.checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #222;
+    cursor: pointer;
+}
+
+/* CUSTOM CHECKBOX */
+.checkbox-label input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #0a47a9;
+    border-radius: 4px;
+    margin-top: 2px;
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+}
+
+/* ZNACZNIK CHECK */
+.checkbox-label input[type="checkbox"]::before {
+    content: "✓";
+    font-size: 14px;
+    font-weight: 900;
+    color: white;
+    transform: scale(0);
+    transition: transform 0.15s ease-in-out;
+}
+
+/* CHECKED */
+.checkbox-label input[type="checkbox"]:checked {
+    background: #0a47a9;
+}
+
+/* CHECKED IKONA */
+.checkbox-label input[type="checkbox"]:checked::before {
+    transform: scale(1);
+}
+
+/* LINKI */
+.checkbox-label a {
+    color: #0a47a9;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+/* OPCJONALNA ZGODA */
+.checkbox-label.optional {
+    opacity: 0.8;
+    font-size: 13px;
+}
+
+/* PRZYCISK */
+.primary-btn {
+    width: 100%;
+    height: 58px;
+    border-radius: 999px;
+    border: none;
+    background: #0a47a9;
+    color: #fff;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    margin-top: 14px;
+}
+
+/* HOVER PRZYCISKU */
+.primary-btn:hover {
+    filter: brightness(1.05);
+}
+
+/* KOMUNIKAT */
+.msg {
+    margin-top: 10px;
+    color: #0a47a9;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* RESPONSYWNOŚĆ */
+@media (max-width: 900px) {
+    .register-main {
+        grid-template-columns: 1fr;
+        padding: 28px 18px;
+    }
+
+    .register-brand {
+        font-size: 48px;
+    }
+}

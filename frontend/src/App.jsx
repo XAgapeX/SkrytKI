@@ -1,58 +1,68 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import { AuthProvider, AuthContext } from "./AuthContext";
-import { useContext } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./AuthContext";
+
+import MainLayout from "./components/MainLayout";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Lockers from "./pages/Lockers";
 
-function NavBar() {
-  const { user, logout } = useContext(AuthContext);
+import DashboardBase from "./components/DashboardBase";
+import PanelRouter from "./pages/PanelRouter";
+import RedirectRoot from "./components/RedirectRoot";
 
-  return (
-    <nav
-      style={{
-        display: "flex",
-        gap: "10px",
-        alignItems: "center",
-        marginBottom: "20px",
-      }}
-    >
-      <Link to="/">Login</Link>
-      <Link to="/register">Register</Link>
-      <Link to="/lockers">Lockers</Link>
+import Pickup from "./pages/User/Pickup";
+import InTransit from "./pages/User/InTransit";
+import Send from "./pages/User/Send";
+import Profile from "./pages/User/Profile";
+import Map from "./pages/User/Map.jsx";
+import History from "./pages/User/History.jsx";
 
-      {user && (
-        <button
-          onClick={logout}
-          style={{
-            marginLeft: "auto",
-            background: "#222",
-            color: "#fff",
-            border: "1px solid #555",
-            padding: "4px 10px",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Logout
-        </button>
-      )}
-    </nav>
-  );
-}
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import Lockers from "./pages/Admin/ManageLockers";
+import Reports from "./pages/Admin/Reports";
+import Users from "./pages/Admin/Users";
+
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <BrowserRouter>
-        <NavBar />
+    return (
+        <AuthProvider>
+            <BrowserRouter>
+                <Routes>
 
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/lockers" element={<Lockers />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-  );
+                    {/* PUBLIC */}
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+
+                    {/* Z NAVBAREM */}
+                    <Route element={<MainLayout />}>
+                        <Route element={<DashboardBase />}>
+
+                            {/* USER */}
+                            <Route path="/panel">
+                                <Route index element={<PanelRouter />} />
+                                <Route path="pickup" element={<Pickup />} />
+                                <Route path="in-transit" element={<InTransit />} />
+                                <Route path="send" element={<Send />} />
+                                <Route path="profile" element={<Profile />} />
+                                <Route path="map" element={<Map />} />
+                                <Route path="history" element={<History />} />
+                            </Route>
+
+                            {/* ADMIN */}
+                            <Route path="/admin">
+                                <Route index element={<AdminDashboard />} />
+                                <Route path="lockers" element={<Lockers />} />
+                                <Route path="reports" element={<Reports />} />
+                                <Route path="users" element={<Users />} />
+                            </Route>
+
+                        </Route>
+
+                        <Route path="/" element={<RedirectRoot />} />
+                        <Route path="*" element={<RedirectRoot />} />
+                    </Route>
+                </Routes>
+            </BrowserRouter>
+        </AuthProvider>
+    );
 }

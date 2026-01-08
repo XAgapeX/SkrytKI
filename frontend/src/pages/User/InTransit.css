@@ -1,0 +1,97 @@
+.intransit-page {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* GŁÓWNY BLOK */
+.intransit-content {
+    display: grid;
+    grid-template-columns: 1.1fr 1.9fr;
+    gap: 140px;
+    max-width: 1200px;
+    width: 100%;
+    padding: 80px 40px;
+}
+
+/* LEWA STRONA – DWIE KOLUMNY */
+.intransit-left {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    width: 520px;
+}
+
+/* LEWA KOLUMNA */
+.intransit-left-left,
+.intransit-left-right {
+    margin-top: 50px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: stretch;
+}
+
+/* TYTUŁ KOLUMNY */
+.package-column-title {
+    width: 100%;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #0b4fb3;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* PRZYCISK PACZKI */
+.package-btn {
+    width: 100%;
+    padding: 26px 28px;          /* było 18px 22px */
+    border-radius: 20px;         /* było 16px */
+
+    background-color: #0b4fb3;
+    color: white;
+
+    font-size: 20px;             /* było 18px */
+    font-weight: 600;
+    text-align: left;
+
+    border: none;
+    cursor: pointer;
+}
+
+/* HOVER */
+.package-btn:hover {
+    background-color: #083f8f;
+}
+
+/* PRAWA STRONA */
+.intransit-right {
+    background-color: #0b4fb3;
+    color: white;
+    padding: 40px;
+    border-radius: 28px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.intransit-right h3 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* MOBILE */
+@media (max-width: 900px) {
+    .intransit-content {
+        grid-template-columns: 1fr;
+    }
+
+    .intransit-left {
+        grid-template-columns: 1fr;
+        margin: 40px 0;
+    }
+}

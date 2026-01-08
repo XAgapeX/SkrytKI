@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@react-google-maps/api": "^2.20.8",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",

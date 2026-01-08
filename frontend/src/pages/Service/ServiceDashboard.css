@@ -1,0 +1,64 @@
+/* SIATKA KAFELKÓW SERWISANTA */
+.sd-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+    gap: 28px 40px;
+    padding: 24px 0;
+}
+
+/* WSPÓLNE STYLE KAFELKA */
+.sd-tile {
+    background: #0a47a9;
+    border: none;
+    border-radius: 22px;
+    color: #fff;
+}
+
+/* DUŻY KAFEL */
+.sd-tile--big {
+    height: 210px;
+    padding: 18px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* TYTUŁ KAFELKA */
+.sd-title {
+    font-weight: 900;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+/* IKONA KAFELKA */
+.sd-icon {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+}
+
+/* MAŁY KAFEL */
+.sd-tile--small {
+    height: 78px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* USUNIĘCIE FOCUS / ACTIVE DLA KAFELKÓW */
+.sd-tile:focus,
+.sd-tile:focus-visible,
+.sd-tile:active {
+    outline: none;
+    box-shadow: none;
+}
+
+/* RESPONSYWNOŚĆ – MOBILE */
+@media (max-width: 900px) {
+    .sd-grid {
+        grid-template-columns: 1fr;
+    }
+}

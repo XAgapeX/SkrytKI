@@ -1,0 +1,71 @@
+.pickup-page {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* TEN BLOK JEST CENTROWANY */
+.pickup-content {
+    display: grid;
+    grid-template-columns: 0.85fr 1.15fr;
+    gap: 40px;
+
+    max-width: 1200px;
+    width: 100%;
+}
+
+/* LEWA STRONA */
+.pickup-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin: 55px;
+}
+
+.pickup-left > * {
+    width: min(420px, 92vw);
+}
+
+/* PRAWA STRONA */
+.pickup-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pickup-locker-img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* MOBILE */
+@media (max-width: 900px) {
+    .pickup-content {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    /* formularz NA GÓRZE */
+    .pickup-left {
+        order: 1;
+        margin: 24px 0;
+        gap: 16px;
+    }
+
+    /* grafika POD spodem */
+    .pickup-right {
+        order: 2;
+    }
+
+    .pickup-left > * {
+        width: 100%;
+        max-width: 420px;
+    }
+
+    .pickup-page {
+        padding: 24px 16px;
+        align-items: flex-start;
+    }
+}

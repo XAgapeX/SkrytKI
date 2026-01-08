@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import API from "../api";
-import { AuthContext } from "../AuthContext";
+import AuthContext from "../AuthContext";
 
 export default function Lockers() {
   const { user } = useContext(AuthContext);

@@ -1,0 +1,71 @@
+.send-page {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* TEN BLOK JEST CENTROWANY */
+.send-content {
+    display: grid;
+    grid-template-columns: 0.85fr 1.15fr;
+    gap: 40px;
+
+    max-width: 1200px;
+    width: 100%;
+}
+
+/* LEWA STRONA */
+.send-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin: 55px;
+}
+
+.send-left > * {
+    width: min(420px, 92vw);
+}
+
+/* PRAWA STRONA */
+.send-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.send-locker-img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* MOBILE */
+@media (max-width: 900px) {
+    .send-content {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    /* formularz NA GÓRZE */
+    .send-left {
+        order: 1;
+        margin: 24px 0;
+        gap: 16px;
+    }
+
+    /* grafika POD SPodem */
+    .send-right {
+        order: 2;
+    }
+
+    .send-left > * {
+        width: 100%;
+        max-width: 420px;
+    }
+
+    .send-page {
+        padding: 24px 16px;
+        align-items: flex-start;
+    }
+}
