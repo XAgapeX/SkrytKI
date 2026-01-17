@@ -1,6 +1,10 @@
 import { useState } from "react";
 import "./Map.css";
 
+import warszawaBg from "../../assets/warszawa.jpg";
+import krakowBg from "../../assets/krakow.jpg";
+import tarnowBg from "../../assets/tarnow.jpg";
+
 const maps = {
     warszawa:
         "https://www.google.com/maps?q=52.231610624876026,21.03468982125436&z=14&output=embed",
@@ -10,11 +14,22 @@ const maps = {
         "https://www.google.com/maps?q=50.012218531600666,20.986982194583156&z=14&output=embed",
 };
 
+const backgrounds = {
+    warszawa: warszawaBg,
+    krakow: krakowBg,
+    tarnow: tarnowBg,
+};
+
 export default function Map() {
     const [city, setCity] = useState("");
 
     return (
-        <div className="map-page">
+        <div
+            className="map-page"
+            style={{
+                backgroundImage: city ? `url(${backgrounds[city]})` : "none",
+            }}
+        >
             <div className="map-layout">
                 {/* LEWA KOLUMNA */}
                 <div className="map-controls">

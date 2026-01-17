@@ -5,6 +5,8 @@ import MainLayout from "./components/MainLayout";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import RegisterSuccess from "./pages/RegisterSuccess";
+
 
 import DashboardBase from "./components/DashboardBase";
 import PanelRouter from "./pages/PanelRouter";
@@ -22,6 +24,11 @@ import Lockers from "./pages/Admin/ManageLockers";
 import Reports from "./pages/Admin/Reports";
 import Users from "./pages/Admin/Users";
 
+import CourierDashboard from "./pages/Courier/CourierDashboard";
+import CourierOverview from "./pages/Courier/CourierOverview";
+import CourierPickup from "./pages/Courier/CourierPickup";
+import CourierDelivery from "./pages/Courier/CourierDelivery";
+
 
 export default function App() {
     return (
@@ -32,6 +39,8 @@ export default function App() {
                     {/* PUBLIC */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
+                    <Route path="/register-success" element={<RegisterSuccess />} />
+
 
                     {/* Z NAVBAREM */}
                     <Route element={<MainLayout />}>
@@ -54,6 +63,14 @@ export default function App() {
                                 <Route path="lockers" element={<Lockers />} />
                                 <Route path="reports" element={<Reports />} />
                                 <Route path="users" element={<Users />} />
+                            </Route>
+
+                            {/* COURIER */}
+                            <Route path="/courier">
+                                <Route index element={<CourierDashboard />} />
+                                <Route path="overview" element={<CourierOverview />} />
+                                <Route path="pickup" element={<CourierPickup />} />
+                                <Route path="delivery" element={<CourierDelivery />} />
                             </Route>
 
                         </Route>

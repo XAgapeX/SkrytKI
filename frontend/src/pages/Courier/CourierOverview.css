@@ -1,0 +1,95 @@
+/* GŁÓWNY LAYOUT KURIERA */
+.courier-page {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.courier-content {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 40px;
+    max-width: 1200px;
+    width: 100%;
+}
+
+/* LEWA STRONA */
+.courier-left {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 48px 32px;
+}
+
+.courier-left h2 {
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.courier-left p {
+    opacity: 0.65;
+    margin-bottom: 12px;
+}
+
+/* WIERSZE MIAST */
+.courier-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    background: #f3f5f9;
+    border-radius: 18px;
+    padding: 16px 22px;
+
+    font-weight: 700;
+    font-size: 15px;
+
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.courier-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.courier-name {
+    font-size: 15px;
+}
+
+.courier-stats {
+    display: flex;
+    gap: 14px;
+    font-size: 14px;
+}
+
+.courier-stats span {
+    background: #ffffff;
+    padding: 6px 12px;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* LOADING */
+.courier-loading {
+    text-align: center;
+    font-weight: 600;
+    opacity: 0.7;
+}
+
+/* MOBILE */
+@media (max-width: 900px) {
+    .courier-content {
+        grid-template-columns: 1fr;
+        gap: 28px;
+    }
+
+    .courier-left {
+        padding: 24px 16px;
+    }
+
+    .courier-page {
+        padding: 24px 16px;
+        align-items: flex-start;
+    }
+}

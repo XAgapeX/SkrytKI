@@ -34,6 +34,11 @@ export default function Register() {
             return;
         }
 
+        if (!email.toLowerCase().endsWith("@skrytki.pl")) {
+            setMsg("Email musi kończyć się na @skrytki.pl");
+            return;
+        }
+
         try {
             const res = await API.post("/register", {
                 firstName,
@@ -47,7 +52,7 @@ export default function Register() {
             });
 
             if (res.data.ok) {
-                navigate("/login");
+                navigate("/register-success");
             } else {
                 setMsg("Błąd rejestracji");
             }
@@ -62,11 +67,7 @@ export default function Register() {
 
             <main className="register-main">
                 <section className="register-left">
-                    <img
-                        src={logo}
-                        alt="SkrytKI logo"
-                        className="register-biglogo"
-                    />
+                    <img src={logo} alt="SkrytKI logo" className="register-biglogo" />
                     <div className="register-brand">SkrytKI</div>
                 </section>
 
@@ -79,7 +80,6 @@ export default function Register() {
                             value={firstName}
                             placeholder="Imię"
                             onChange={(e) => setFirstName(e.target.value)}
-                            required
                         />
 
                         <input
@@ -87,13 +87,12 @@ export default function Register() {
                             value={lastName}
                             placeholder="Nazwisko"
                             onChange={(e) => setLastName(e.target.value)}
-                            required
                         />
 
                         <input
                             className="field"
                             value={email}
-                            placeholder="Login"
+                            placeholder="Email (@skrytki.pl)"
                             onChange={(e) => setEmail(e.target.value)}
                             required
                         />
@@ -129,9 +128,7 @@ export default function Register() {
                                 <input
                                     type="checkbox"
                                     checked={acceptTerms}
-                                    onChange={(e) =>
-                                        setAcceptTerms(e.target.checked)
-                                    }
+                                    onChange={(e) => setAcceptTerms(e.target.checked)}
                                     required
                                 />
                                 Akceptuję{" "}
@@ -144,9 +141,7 @@ export default function Register() {
                                 <input
                                     type="checkbox"
                                     checked={acceptPrivacy}
-                                    onChange={(e) =>
-                                        setAcceptPrivacy(e.target.checked)
-                                    }
+                                    onChange={(e) => setAcceptPrivacy(e.target.checked)}
                                     required
                                 />
                                 Akceptuję{" "}
@@ -163,12 +158,10 @@ export default function Register() {
                                 <input
                                     type="checkbox"
                                     checked={marketing}
-                                    onChange={(e) =>
-                                        setMarketing(e.target.checked)
-                                    }
+                                    onChange={(e) => setMarketing(e.target.checked)}
                                 />
-                                Wyrażam zgodę na otrzymywanie informacji
-                                marketingowych (opcjonalnie)
+                                Wyrażam zgodę na otrzymywanie informacji marketingowych
+                                (opcjonalnie)
                             </label>
                         </div>
 
