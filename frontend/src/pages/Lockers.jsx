@@ -26,7 +26,6 @@ async function checkPendingPackage() {
   }
 }
 
-// ---------------- COURIER DATA ----------------
 const [courierStatus, setCourierStatus] = useState({
   pickupReady: [],
   toDeliver: [],
@@ -46,7 +45,6 @@ async function loadCourierStatus() {
   }
 }
 
-  // ---------------- LOAD LOCKERS & GROUPS ----------------
   async function loadLockers() {
     try {
       const { data } = await API.get("/lockers");
@@ -82,7 +80,6 @@ useEffect(() => {
   }
 }, [user]);
 
-// ---------------- COURIER REFRESH ----------------
 async function refreshCourierStatus(groupId) {
   try {
     const { data } = await API.post("/courier/statusByGroup", {
@@ -99,7 +96,6 @@ async function refreshCourierStatus(groupId) {
   }
 }
 
-  // ---------------- GENERIC ACTION ----------------
   async function send(path, body = {}) {
     try {
       await API.post(path, body);
@@ -120,12 +116,10 @@ async function refreshCourierStatus(groupId) {
     <div>
       <h2>Locker Panel ({user.role})</h2>
 
-      {/* ---------------- USER PANEL ---------------- */}
 {user.role === "user" && (
   <>
     <h3>User Panel</h3>
 
-    {/* Komunikat o oczekującej paczce */}
     {pendingPackage ? (
       <div
         style={{
@@ -135,7 +129,7 @@ async function refreshCourierStatus(groupId) {
           border: "1px solid limegreen",
         }}
       >
-        📫 You have a package waiting in <b>{pendingPackage.location}</b>!
+        You have a package waiting in <b>{pendingPackage.location}</b>!
         <br />
         Locker #{pendingPackage.id} — {pendingPackage.packageId}
       </div>
@@ -143,7 +137,6 @@ async function refreshCourierStatus(groupId) {
       <p style={{ color: "#aaa" }}>No package waiting for pickup.</p>
     )}
 
-    {/* Nadawanie paczki */}
     <h4>Send Package</h4>
 
     <label>Pickup from locker group:</label>
@@ -200,15 +193,15 @@ async function refreshCourierStatus(groupId) {
       });
 
       if (res.data.ok) {
-        alert(`📦 ${res.data.message}`);
+        alert(`${res.data.message}`);
       } else {
-        alert(`⚠️ ${res.data.error}`);
+        alert(`${res.data.error}`);
       }
       checkPendingPackage();
     } catch (err) {
       console.error("Send error:", err.response?.data || err);
       alert(
-        "❌ Failed to send package:\n" +
+        "Failed to send package:\n" +
           (err.response?.data?.error || err.message)
       );
     }
@@ -220,7 +213,7 @@ async function refreshCourierStatus(groupId) {
       <button
         onClick={async () => {
           const res = await API.post("/lockers/receive");
-          alert(`✅ ${res.data.message}`);
+          alert(`OK ${res.data.message}`);
           checkPendingPackage();
         }}
       >
@@ -230,12 +223,10 @@ async function refreshCourierStatus(groupId) {
   </>
 )}
 
-{/* ---------------- COURIER PANEL ---------------- */}
 {user.role === "courier" && (
   <div>
     <h3>Courier Panel</h3>
 
-    {/* --- Wybór lokalizacji --- */}
     <label style={{ display: "block", margin: "10px 0 5px" }}>
       Select current locker group:
     </label>
@@ -260,7 +251,6 @@ async function refreshCourierStatus(groupId) {
       ))}
     </select>
 
-    {/* --- Przycisk odświeżania --- */}
     {selectedGroup && (
       <button
         style={{
@@ -270,13 +260,12 @@ async function refreshCourierStatus(groupId) {
         }}
         onClick={() => refreshCourierStatus(selectedGroup)}
       >
-        🔁 Refresh Status
+        Refresh Status
       </button>
     )}
 
-    {/* --- PACZKI DO ODEBRANIA --- */}
     <div style={{ marginTop: "20px" }}>
-      <h4>📦 Packages Ready for Pickup at this location</h4>
+      <h4>Packages Ready for Pickup at this location</h4>
       {courierStatus.pickupReady.length === 0 ? (
         <p style={{ color: "#aaa" }}>No packages waiting here</p>
       ) : (
@@ -297,13 +286,12 @@ async function refreshCourierStatus(groupId) {
               );
             }}
           >
-            🚚 Pickup all from here
+            Pickup all from here
           </button>
         </>
       )}
     </div>
 
-    {/* --- PACZKI DO DOSTARCZENIA --- */}
     <div style={{ marginTop: "25px" }}>
       <h4>📬 Packages to Deliver to this location</h4>
       {courierStatus.toDeliver.length === 0 ? (
@@ -325,14 +313,13 @@ async function refreshCourierStatus(groupId) {
               }).then(() => refreshCourierStatus(selectedGroup));
             }}
           >
-            📦 Deliver all to this location
+            Deliver all to this location
           </button>
         </>
       )}
     </div>
   </div>
 )}
-      {/* ---------------- SERVICE PANEL ---------------- */}
       {user.role === "service" && (
         <>
           <div style={{ marginBottom: "8px", marginTop: "12px" }}>
@@ -358,7 +345,6 @@ async function refreshCourierStatus(groupId) {
         </>
       )}
 
-      {/* ---------------- ADMIN PANEL ---------------- */}
       {user.role === "admin" && (
         <>
           <button

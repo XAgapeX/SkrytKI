@@ -14,7 +14,7 @@
     position: relative;
 }
 
-/* Biała poświata (glass effect) */
+/* BIAŁA POŚWIATA (GLASS EFFECT) */
 .map-page::before {
     content: "";
     position: absolute;
@@ -22,13 +22,6 @@
     background: rgba(255, 255, 255, 0.75);
     backdrop-filter: blur(3px);
     z-index: 0;
-}
-
-/* Tytuł */
-.map-title {
-    font-weight: 900;
-    letter-spacing: 2px;
-    margin-bottom: 24px;
 }
 
 /* UKŁAD */
@@ -41,7 +34,7 @@
     min-height: calc(100vh - 120px);
 
     position: relative;
-    z-index: 1; /* nad overlayem */
+    z-index: 1;
 }
 
 /* LEWA STRONA */
@@ -50,28 +43,35 @@
     align-items: center;
 }
 
+/* SELECT */
 .map-select {
     width: 100%;
     height: 56px;
     border-radius: 999px;
     border: 2px solid #0a47a9;
     padding: 0 44px 0 18px;
-
     font-size: 16px;
-    font-weight: 700;
     font-family: inherit;
-
-    color: #0a47a9;
-    background-color: #fff;
+    background-color: #ffffff;
     cursor: pointer;
 
+    /* USUNIĘCIE NATYWNEJ STRZAŁKI */
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
+
+    /* STRZAŁKA */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a47a9' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 18px center;
+    background-size: 16px;
 }
 
-.map-select:has(option[value=""]:checked) {
-    color: #0a47a9;
+/* FOCUS */
+.map-select:focus,
+.map-select:active {
+    background-color: #ffffff;
+    outline: none;
 }
 
 /* PRAWA STRONA – MAPA */
@@ -88,7 +88,7 @@
     backdrop-filter: blur(4px);
 }
 
-/* Placeholder */
+/* PLACEHOLDER */
 .map-placeholder {
     font-weight: 900;
     text-align: center;

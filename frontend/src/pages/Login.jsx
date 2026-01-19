@@ -10,21 +10,31 @@ export default function Login() {
 
     const [loginValue, setLoginValue] = useState("");
     const [password, setPassword] = useState("");
-    const [msg, setMsg] = useState("");
+    const [info, setInfo] = useState("");
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
 
     async function handleSubmit(e) {
         e.preventDefault();
-        setMsg("");
+        setInfo("");
         setLoading(true);
 
+        if (!loginValue.trim() || !password) {
+            setInfo("Uzupełnij login i hasło");
+            setLoading(false);
+            return;
+        }
+
         try {
-            await login(loginValue, password);
-            navigate("/panel");
-        } catch (err) {
-            setMsg(err?.response?.data?.error || "Nie udało się zalogować");
+            const user = await login(loginValue, password);
+
+            if (user.role === "admin") navigate("/admin");
+            else if (user.role === "courier") navigate("/courier");
+            else if (user.role === "service") navigate("/service");
+            else navigate("/panel");
+        } catch {
+            setInfo("Błędny login lub hasło");
         } finally {
             setLoading(false);
         }
@@ -35,41 +45,52 @@ export default function Login() {
             <Navbar />
 
             <main className="center">
-                <form className="login-card" onSubmit={handleSubmit}>
+                <form
+                    className="login-card"
+                    onSubmit={handleSubmit}
+                    noValidate
+                >
                     <div className="avatar">
-                        <img src={logo} alt="SkrytKI logo" className="avatar-logo" />
+                        <img
+                            src={logo}
+                            alt="SkrytKI logo"
+                            className="avatar-logo"
+                        />
                     </div>
 
                     <h2 className="title">LOGIN</h2>
 
                     <input
                         className="field"
-                        value={loginValue}
                         placeholder="Login"
+                        value={loginValue}
                         onChange={(e) => setLoginValue(e.target.value)}
                         autoComplete="username"
-                        required
                     />
 
                     <input
                         className="field"
                         type="password"
-                        value={password}
                         placeholder="Hasło"
+                        value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         autoComplete="current-password"
-                        required
                     />
 
-                    <button className="primary-btn" type="submit" disabled={loading}>
+                    <button
+                        className="primary-btn"
+                        type="submit"
+                        disabled={loading}
+                    >
                         {loading ? "LOGOWANIE..." : "LOGIN"}
                     </button>
 
-                    <div className="hint">
-                        Nie posiadasz konta? <Link to="/register">Zarejestruj się tutaj</Link>
-                    </div>
+                    {info && <p className="password-hint">{info}</p>}
 
-                    {msg ? <p className="msg">{msg}</p> : null}
+                    <div className="hint">
+                        Nie posiadasz konta?{" "}
+                        <Link to="/register">Zarejestruj się tutaj</Link>
+                    </div>
                 </form>
             </main>
         </div>

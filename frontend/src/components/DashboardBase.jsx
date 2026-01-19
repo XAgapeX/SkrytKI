@@ -15,10 +15,10 @@ export default function DashboardBase() {
 
     return (
         <div className="dashboard">
-
             {/* CONTENT */}
             <main className="dashboard-content">
                 <div className="dashboard-inner">
+
                     <div className="dashboard-user">
                         Witaj!: <strong>{user?.email}</strong>
                     </div>

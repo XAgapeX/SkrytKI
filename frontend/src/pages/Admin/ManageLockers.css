@@ -1,0 +1,148 @@
+/* LAYOUT */
+.manage-lockers-layout {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: flex-start;
+}
+
+/* LEFT COLUMN */
+.manage-lockers-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding-right: 56px;
+    text-align: center;
+}
+
+.manage-lockers-left > * {
+    width: 100%;
+    max-width: 420px;
+}
+
+/* RIGHT COLUMN */
+.manage-lockers-right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-left: 56px;
+    min-width: 0;
+}
+
+/* SELECT */
+.city-select {
+    width: 100%;
+    height: 58px;
+    border-radius: 999px;
+    border: 2px solid #0a47a9;
+    background: #ffffff;
+    font-size: 18px;
+    padding: 0 52px 0 28px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a47a9' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 22px center;
+    background-size: 18px;
+}
+
+/* TABLE */
+.manage-lockers-table {
+    width: 100%;
+    max-width: 1000px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(10, 71, 169, 0.06);
+}
+
+.manage-lockers-table__header,
+.manage-lockers-table__row {
+    display: grid;
+    grid-template-columns: 60px 100px 140px 1fr;
+    align-items: center;
+    justify-items: center;
+    gap: 12px;
+}
+
+.manage-lockers-table__header {
+    background: #0a47a9;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 12px;
+    border-radius: 8px 8px 0 0;
+}
+
+.manage-lockers-table__row {
+    padding: 12px;
+    font-size: 14px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.manage-lockers-table__row:hover {
+    background: #f4f7ff;
+}
+
+/* ACTIONS */
+.actions-cell {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* STATUS */
+.status {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.status--free {
+    background: #e6f0ff;
+    color: #0a47a9;
+}
+
+.status--reserved {
+    background: #ede7ff;
+    color: #5b3fd6;
+}
+
+.status--occupied {
+    background: #fff4e5;
+    color: #c77700;
+}
+
+.status--broken {
+    background: #fdeaea;
+    color: #c62828;
+}
+
+.status--blocked {
+    background: #ffe6f2;
+    color: #b3005e;
+}
+
+/* FOOTER */
+.manage-lockers-footer {
+    margin-top: 32px;
+    display: flex;
+    justify-content: center;
+}
+
+/* MOBILE */
+@media (max-width: 900px) {
+    .manage-lockers-layout {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .manage-lockers-left,
+    .manage-lockers-right {
+        padding: 0;
+    }
+}

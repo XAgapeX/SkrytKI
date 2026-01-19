@@ -1,7 +1,7 @@
 .intransit-page {
-    min-height: 60vh;
+    min-height: 30vh;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
 }
 
@@ -12,7 +12,7 @@
     gap: 140px;
     max-width: 1200px;
     width: 100%;
-    padding: 80px 40px;
+    padding: 60px 40px;
 }
 
 /* LEWA STRONA – DWIE KOLUMNY */
@@ -20,10 +20,11 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 40px;
+    margin-top: -72px;
     width: 520px;
 }
 
-/* LEWA KOLUMNA */
+/* LEWA / PRAWA KOLUMNA */
 .intransit-left-left,
 .intransit-left-right {
     margin-top: 50px;
@@ -48,16 +49,13 @@
 /* PRZYCISK PACZKI */
 .package-btn {
     width: 100%;
-    padding: 26px 28px;          /* było 18px 22px */
-    border-radius: 20px;         /* było 16px */
-
+    padding: 26px 28px;
+    border-radius: 20px;
     background-color: #0b4fb3;
     color: white;
-
-    font-size: 20px;             /* było 18px */
+    font-size: 20px;
     font-weight: 600;
     text-align: left;
-
     border: none;
     cursor: pointer;
 }
@@ -86,12 +84,35 @@
 
 /* MOBILE */
 @media (max-width: 900px) {
+    .intransit-page {
+        align-items: flex-start;
+        padding: 24px 16px;
+    }
+
     .intransit-content {
         grid-template-columns: 1fr;
+        gap: 24px;
+        padding: 0;
     }
 
     .intransit-left {
         grid-template-columns: 1fr;
-        margin: 40px 0;
+        width: 100%;
+        margin-top: 0;
+        gap: 24px;
+    }
+
+    .intransit-left-left,
+    .intransit-left-right {
+        margin-top: 0;
+    }
+
+    .intransit-right {
+        padding: 24px;
+    }
+
+    .package-btn {
+        padding: 18px 18px;
+        font-size: 16px;
     }
 }

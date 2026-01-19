@@ -39,20 +39,6 @@
     object-fit: contain;
 }
 
-/* MAŁY KAFEL */
-.ud-tile--small {
-    height: 78px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* KAFEL HISTORII PACZEK */
-.ud-history {
-    cursor: pointer;
-    font-weight: 800;
-}
-
 /* RESPONSYWNOŚĆ – MOBILE */
 @media (max-width: 900px) {
     .ud-grid {

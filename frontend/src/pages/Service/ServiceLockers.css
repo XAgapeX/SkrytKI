@@ -1,0 +1,234 @@
+/* LAYOUT */
+.service-lockers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 60vh;
+    margin-top: 40px;
+}
+
+/* SIDEBAR */
+.service-lockers__sidebar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 380px;
+}
+
+
+/* SELECT MIASTA */
+.city-select {
+    width: 340px;
+    height: 58px;
+    border-radius: 999px;
+    border: 2px solid #0a47a9;
+    background: #ffffff;
+    font-size: 18px;
+    padding: 0 52px 0 28px;
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a47a9' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 22px center;
+    background-size: 18px;
+}
+
+/* CONTENT */
+.service-lockers__content {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(10, 71, 169, 0.06);
+    padding: 16px;
+    max-width: 640px;
+    overflow-x: auto;
+}
+
+/* TABELA GRID*/
+.service-lockers__header,
+.service-lockers__grid {
+    display: grid;
+    grid-template-columns: 60px 100px 140px 1fr;
+    align-items: center;
+    justify-items: center;
+    gap: 12px;
+}
+
+/* HEADER */
+.service-lockers__header {
+    background: #0a47a9;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 12px;
+    border-radius: 8px 8px 0 0;
+    letter-spacing: 0.5px;
+}
+
+/* ROWS */
+.service-lockers__row {
+    padding: 12px;
+    font-size: 14px;
+    color: #222222;
+    border-bottom: 1px solid #eef2f7;
+    transition: background 0.2s ease;
+}
+
+.service-lockers__row:hover {
+    background: #f4f7ff;
+}
+
+.service-lockers__row:last-child {
+    border-bottom: none;
+}
+
+/* ACTIONS */
+.actions-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 40px;
+    gap: 10px;
+}
+
+.actions-cell button {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+}
+
+/* STATUS */
+.status {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.status--free {
+    background: #e6f0ff;
+    color: #0a47a9;
+}
+
+.status--reserved {
+    background: #ede7ff;
+    color: #5b3fd6;
+}
+
+.status--occupied {
+    background: #fff4e5;
+    color: #c77700;
+}
+
+.status--broken {
+    background: #fdeaea;
+    color: #c62828;
+}
+
+/* FOOTER */
+.service-lockers__footer {
+    margin-top: 40px;
+    display: flex;
+    justify-content: center;
+}
+
+/*  BUTTONS */
+.primary-btn.small {
+    height: 40px;
+    padding: 0 24px;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+.primary-btn.big {
+    width: 360px;
+    height: 64px;
+    font-size: 20px;
+    letter-spacing: 1px;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+
+    .service-lockers {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        margin-top: 24px;
+    }
+
+    .service-lockers__sidebar {
+        justify-content: center;
+    }
+
+    .city-select {
+        width: 100%;
+        height: 52px;
+        font-size: 16px;
+    }
+
+    .service-lockers__content {
+        max-width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+    }
+
+    .service-lockers__header,
+    .service-lockers__grid {
+        grid-template-columns: 48px 80px 120px 1fr;
+        gap: 8px;
+    }
+
+    .service-lockers__header {
+        font-size: 12px;
+        padding: 10px;
+    }
+
+    .service-lockers__row {
+        font-size: 13px;
+        padding: 10px;
+    }
+
+    .status {
+        font-size: 11px;
+        padding: 4px 10px;
+    }
+
+    .actions-cell button {
+        font-size: 12px;
+        padding: 6px 10px;
+    }
+
+    .service-lockers__footer {
+        margin-top: 24px;
+    }
+
+    .primary-btn.small {
+        height: 36px;
+        font-size: 13px;
+        padding: 0 18px;
+    }
+
+    .primary-btn.big {
+        width: 100%;
+        height: 56px;
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .service-lockers__header,
+    .service-lockers__grid {
+        grid-template-columns: 40px 70px 1fr;
+    }
+
+    .service-lockers__header div:nth-child(3),
+    .service-lockers__grid div:nth-child(3) {
+        display: none;
+    }
+}

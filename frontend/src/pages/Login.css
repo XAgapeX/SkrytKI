@@ -2,7 +2,7 @@
     box-sizing: border-box;
 }
 
-/* Podstawowe wymiary aplikacji */
+/* WYMIARY APLIKACJI */
 html,
 body,
 #root {
@@ -12,7 +12,7 @@ body,
     height: 100%;
 }
 
-/* Globalny font dla całej aplikacji */
+/* FONT GLOBALNY */
 body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;
@@ -20,7 +20,7 @@ body {
     color: #0a47a9;
 }
 
-/* LOGIN / REGISTER – CAŁA STRONA */
+/* LOGIN / REGISTER */
 .login-page {
     min-height: 100vh;
     width: 100%;

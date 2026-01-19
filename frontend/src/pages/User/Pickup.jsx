@@ -15,7 +15,6 @@ export default function Pickup() {
     const token = localStorage.getItem("token");
     const lottieRef = useRef(null);
 
-    // ---------- LOAD USER PENDING PACKAGE ----------
     const loadPending = async () => {
         if (!token) {
             setMessage("Brak autoryzacji");
@@ -43,13 +42,11 @@ export default function Pickup() {
         loadPending();
     }, []);
 
-    // ---------- OPEN ----------
     const handleOpen = () => {
         if (!pending) return;
         setShowModal(true);
         setStep("pickup");
 
-        // start normalnej animacji
         setTimeout(() => {
             if (lottieRef.current) {
                 lottieRef.current.setDirection(1);
@@ -58,7 +55,6 @@ export default function Pickup() {
         }, 100);
     };
 
-    // ---------- RECEIVE ----------
     const handleReceive = async () => {
         if (!token) return;
 
@@ -84,7 +80,6 @@ export default function Pickup() {
             setStep("done");
             setPending(null);
 
-            // reverse animacji (zamykanie)
             setTimeout(() => {
                 if (lottieRef.current) {
                     const total = lottieRef.current.getDuration(true);
@@ -101,7 +96,6 @@ export default function Pickup() {
         setLoading(false);
     };
 
-    // ---------- CLOSE ----------
     const close = () => {
         setShowModal(false);
         setStep("open");
@@ -112,6 +106,7 @@ export default function Pickup() {
         <div className="pickup-page">
             <div className="pickup-content">
                 <div className="pickup-left">
+                    <h3>Odbierz paczkę</h3>
 
                     {!pending && <p>Nie masz paczek do odbioru</p>}
 

@@ -31,7 +31,6 @@ export default function Map() {
             }}
         >
             <div className="map-layout">
-                {/* LEWA KOLUMNA */}
                 <div className="map-controls">
                     <select
                         className="map-select"
@@ -45,7 +44,6 @@ export default function Map() {
                     </select>
                 </div>
 
-                {/* PRAWA KOLUMNA – MAPA */}
                 <div className="map-container">
                     {city ? (
                         <iframe

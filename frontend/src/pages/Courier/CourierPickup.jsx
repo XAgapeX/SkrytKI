@@ -17,7 +17,6 @@ export default function CourierPickup() {
 
     const lottieRef = useRef(null);
 
-    // ---------- LOAD GROUPS ----------
     useEffect(() => {
         if (!token) return;
 
@@ -30,7 +29,6 @@ export default function CourierPickup() {
             });
     }, [token]);
 
-    // ---------- STEP 1: OPEN LOCKERS ----------
     const handleOpen = async () => {
         if (!groupId || !token) return;
         setMessage("");
@@ -54,7 +52,6 @@ export default function CourierPickup() {
         setShowModal(true);
         setStep("pickup");
 
-        // start normalnej animacji
         setTimeout(() => {
             if (lottieRef.current) {
                 lottieRef.current.setDirection(1);
@@ -63,7 +60,6 @@ export default function CourierPickup() {
         }, 100);
     };
 
-    // ---------- STEP 2: PACKAGES TAKEN ----------
     const handlePickup = async () => {
         if (!token) return;
 
@@ -89,7 +85,6 @@ export default function CourierPickup() {
         setPickupCount(count);
         setStep("done");
 
-        // odwrócona animacja (zamykanie pudełka)
         setTimeout(() => {
             if (lottieRef.current) {
                 const total = lottieRef.current.getDuration(true);
@@ -99,7 +94,6 @@ export default function CourierPickup() {
         }, 100);
     };
 
-    // ---------- CLOSE ----------
     const handleClose = () => {
         setShowModal(false);
         setPickupCount(0);
@@ -112,7 +106,7 @@ export default function CourierPickup() {
         <div className="pickup-page">
             <div className="pickup-content">
                 <div className="pickup-left">
-                    <h2>Odbiór paczek</h2>
+                    <h3>Odbiór paczek</h3>
 
                     <select
                         className="pickup-field"

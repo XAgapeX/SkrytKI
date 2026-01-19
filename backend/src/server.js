@@ -33,7 +33,6 @@ function nowIso() {
 }
 
 async function cleanupExpiredReservations() {
-  // Any reserved locker past reservationExpiresAt -> free it
   await db.run(`
     UPDATE lockers
     SET status='free',
@@ -63,7 +62,21 @@ async function cleanupExpiredReservations() {
     );
   `);
 
-  // --- GROUPS ---
+    // --- DELETE ACCOUNT REQUESTS ---
+    await db.exec(`
+    CREATE TABLE IF NOT EXISTS delete_account_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER NOT NULL,
+        email TEXT NOT NULL,
+        reason TEXT,
+        status TEXT DEFAULT 'pending', -- pending | approved | rejected
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY (userId) REFERENCES users(id)
+            );
+    `);
+
+
+    // --- GROUPS ---
   await db.exec(`
     CREATE TABLE IF NOT EXISTS locker_groups (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -116,7 +129,6 @@ async function cleanupExpiredReservations() {
   // --- MIGRATIONS / COMPAT: If you had older DB with extra columns, ignore.
   // We intentionally remodeled, so we don't try to keep old "lockers.packageId" etc.
 
-  // Seed groups if empty
   const groupCount = await db.get("SELECT COUNT(*) AS c FROM locker_groups");
   if (groupCount.c === 0) {
     await db.run(
@@ -131,10 +143,9 @@ async function cleanupExpiredReservations() {
         "INSERT INTO locker_groups (name, location) VALUES (?, ?)",
         ["Tarnów - Nowy Świat 10", "50.012218531600666, 20.986982194583156"]
     );
-    console.log("✅ Seeded locker_groups");
+    console.log("Seeded locker_groups");
   }
 
-  // Seed lockers if empty
   const lockerCount = await db.get("SELECT COUNT(*) AS c FROM lockers");
   if (lockerCount.c === 0) {
     const lockerGroups = [
@@ -158,14 +169,12 @@ async function cleanupExpiredReservations() {
 
   console.log("SQLite ready");
 
-  // Periodic cleanup
   setInterval(() => {
     cleanupExpiredReservations().catch((e) =>
         console.error("Cleanup error:", e)
     );
   }, 30_000);
 
-  // Start server
   app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
 })();
 
@@ -230,7 +239,6 @@ app.post("/api/register", async (req, res) => {
     });
   }
 
-  // tylko userzy z domeny
   if (!email.toLowerCase().endsWith("@skrytki.pl")) {
     return res.status(400).json({
       error: "Rejestracja tylko dla adresów @skrytki.pl",
@@ -290,7 +298,6 @@ app.post("/api/login", async (req, res) => {
 });
 
 // ---------------- PROFILE ----------------
-
 app.put("/api/profile", auth, async (req, res) => {
     const { firstName, lastName, phone, password } = req.body;
 
@@ -328,13 +335,65 @@ app.put("/api/profile", auth, async (req, res) => {
     }
 });
 
+// ---------------- PROFILE (GET) ----------------
+app.get("/api/profile", auth, async (req, res) => {
+    try {
+        const user = await db.get(
+            `SELECT id, email, firstName, lastName, phone, role
+             FROM users
+             WHERE id = ?`,
+            [req.user.id]
+        );
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.json({ ok: true, user });
+    } catch (err) {
+        console.error("GET PROFILE ERROR:", err);
+        res.status(500).json({ error: "Failed to load profile" });
+    }
+});
+
+app.post("/api/profile/delete-request", auth, requireRole("user"), async (req, res) => {
+    const { reason = "" } = req.body || {};
+
+    const existing = await db.get(
+        `SELECT id FROM delete_account_requests
+     WHERE userId = ? AND status = 'pending'`,
+        [req.user.id]
+    );
+
+    if (existing) {
+        return res.status(409).json({
+            error: "Już wysłałeś prośbę o usunięcie konta"
+        });
+    }
+
+    await db.run(
+        `
+    INSERT INTO delete_account_requests
+    (userId, email, reason, status, createdAt)
+    VALUES (?, ?, ?, 'pending', ?)
+    `,
+        [
+            req.user.id,
+            req.user.email,
+            reason || null,
+            new Date().toISOString()
+        ]
+    );
+
+    res.json({ ok: true });
+});
+
 
 // ---------------- ADMIN: UPDATE ROLE ----------------
 app.post("/api/setRole", auth, requireRole("admin"), async (req, res) => {
   const { email, role } = req.body || {};
   if (!email || !role) return res.status(400).json({ error: "Missing email/role" });
 
-  // Optional hardening: block creating more admins unless explicitly allowed
   if (role === "admin" && process.env.ALLOW_ADMIN_ESCALATION !== "true") {
     return res.status(403).json({ error: "Admin escalation is disabled" });
   }
@@ -347,6 +406,458 @@ app.post("/api/setRole", auth, requireRole("admin"), async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
+// ---------------- ADMIN: USER SEARCH ----------------
+app.get("/api/admin/users", auth, requireRole("admin"), async (req, res) => {
+  const { email } = req.query;
+  if (!email) return res.status(400).json({ error: "Missing email" });
+
+  const user = await db.get(
+      "SELECT id, email, role FROM users WHERE email = ?",
+      [email]
+  );
+
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  res.json({ ok: true, user });
+});
+
+// ---------------- ADMIN: USER DELETE (SAFE) ----------------
+app.delete(
+    "/api/admin/users/:id",
+    auth,
+    requireRole("admin"),
+    async (req, res) => {
+        const id = Number(req.params.id);
+        if (!id) {
+            return res.status(400).json({ error: "Invalid user id" });
+        }
+
+        try {
+            const user = await db.get(
+                "SELECT id, email, role FROM users WHERE id = ?",
+                [id]
+            );
+
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
+
+            if (user.role === "admin") {
+                return res.status(403).json({
+                    error: "Nie można usunąć konta administratora",
+                });
+            }
+
+            const activePackages = await db.get(
+                `
+        SELECT COUNT(*) AS cnt
+        FROM packages
+        WHERE (senderId = ? OR recipientId = ?)
+          AND status IN ('created', 'inTransit', 'delivered')
+        `,
+                [id, id]
+            );
+
+            if (activePackages.cnt > 0) {
+                return res.status(409).json({
+                    error: "Nie można usunąć użytkownika — ma aktywne paczki",
+                });
+            }
+
+            await db.exec("BEGIN;");
+
+            await db.run(
+                "DELETE FROM delete_account_requests WHERE userId = ?",
+                [id]
+            );
+
+            await db.run(
+                `
+        UPDATE lockers
+        SET reservedBy = NULL,
+            openedBy = NULL
+        WHERE reservedBy = ? OR openedBy = ?
+        `,
+                [id, id]
+            );
+
+            await db.run(
+                `
+              DELETE FROM packages
+              WHERE senderId = ? OR recipientId = ?
+              `,
+                [id, id]
+            );
+
+            await db.run("DELETE FROM users WHERE id = ?", [id]);
+
+            await db.exec("COMMIT;");
+
+            res.json({
+                ok: true,
+                message: `Użytkownik ${user.email} został usunięty`,
+            });
+
+        } catch (err) {
+            await db.exec("ROLLBACK;");
+            console.error("DELETE USER ERROR:", err);
+            res.status(500).json({
+                error: "Błąd usuwania użytkownika (powiązane dane)",
+            });
+        }
+    }
+);
+
+// ---------------- ADMIN: USER DELETE REQUEST ----------------
+app.get(
+    "/api/admin/delete-requests",
+    auth,
+    requireRole("admin"),
+    async (req, res) => {
+        try {
+            const rows = await db.all(`
+                SELECT id, userId, email, reason, createdAt
+                FROM delete_account_requests
+                WHERE status = 'pending'
+                ORDER BY createdAt DESC
+            `);
+
+            res.json({ ok: true, requests: rows });
+        } catch (err) {
+            console.error("GET DELETE REQUESTS ERROR:", err);
+            res.status(500).json({ error: "Failed to load delete requests" });
+        }
+    }
+);
+
+// ---------------- ADMIN: USER DELETE REQUEST DENIED ----------------
+app.post(
+    "/api/admin/delete-requests/:id/reject",
+    auth,
+    requireRole("admin"),
+    async (req, res) => {
+        const id = Number(req.params.id);
+
+        await db.run(
+            `UPDATE delete_account_requests
+             SET status = 'rejected'
+             WHERE id = ?`,
+            [id]
+        );
+
+        res.json({ ok: true });
+    }
+);
+
+// ---------------- ADMIN: REPORTS (CSV) ----------------
+function sendCsv(res, filename, header, rows) {
+  let csv = "\uFEFF" + header + "\n";
+
+  for (const row of rows) {
+    csv += row
+        .map(v => `"${String(v ?? "").replace(/"/g, '""')}"`)
+        .join(",") + "\n";
+  }
+
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=${filename}`
+  );
+
+  res.send(csv);
+}
+
+app.get(
+    "/api/admin/reports/:type",
+    auth,
+    requireRole("admin"),
+    async (req, res) => {
+      const { type } = req.params;
+
+      try {
+        // RAPORT PACZEK
+        if (type === "packages") {
+          const rows = await db.all(`
+            SELECT
+              P.packageId,
+              P.status,
+              P.createdAt,
+              P.updatedAt,
+              U1.email AS sender,
+              U2.email AS recipient,
+              G1.name AS origin,
+              G2.name AS destination
+            FROM packages P
+                   JOIN users U1 ON U1.id = P.senderId
+                   JOIN users U2 ON U2.id = P.recipientId
+                   JOIN locker_groups G1 ON G1.id = P.originGroupId
+                   JOIN locker_groups G2 ON G2.id = P.destinationGroupId
+            ORDER BY P.createdAt DESC
+          `);
+
+          return sendCsv(
+              res,
+              "raport_paczki.csv",
+              "packageId,status,createdAt,updatedAt,sender,recipient,origin,destination",
+              rows.map(r => [
+                r.packageId,
+                r.status,
+                r.createdAt,
+                r.updatedAt,
+                r.sender,
+                r.recipient,
+                r.origin,
+                r.destination
+              ])
+          );
+        }
+
+        // RAPORT SKRYTEK
+        if (type === "lockers") {
+          const rows = await db.all(`
+            SELECT
+              L.id,
+              G.name,
+              L.status,
+              L.lastAction,
+              L.updatedAt
+            FROM lockers L
+                   JOIN locker_groups G ON G.id = L.groupId
+            ORDER BY G.name, L.id
+          `);
+
+          return sendCsv(
+              res,
+              "raport_skrytki.csv",
+              "lockerId,location,status,lastAction,updatedAt",
+              rows.map(r => [
+                r.id,
+                r.name,
+                r.status,
+                r.lastAction || "",
+                r.updatedAt
+              ])
+          );
+        }
+
+        // RAPORT AWARII
+        if (type === "failures") {
+          const rows = await db.all(`
+          SELECT
+            L.id,
+            G.name,
+            L.status,
+            L.lastAction,
+            L.updatedAt
+          FROM lockers L
+          JOIN locker_groups G ON G.id = L.groupId
+          WHERE L.status = 'broken'
+          ORDER BY L.updatedAt DESC
+        `);
+
+          return sendCsv(
+              res,
+              "raport_awarie.csv",
+              "lockerId,location,status,lastAction,updatedAt",
+              rows.map(r => [
+                r.id,
+                r.name,
+                r.status,
+                r.lastAction,
+                r.updatedAt
+              ])
+          );
+        }
+
+        // RAPORT AKTYWNOŚCI
+        if (type === "activity") {
+          const rows = await db.all(`
+          SELECT
+            U.email,
+            U.role,
+            COUNT(DISTINCT P.id) AS packagesCount
+          FROM users U
+          LEFT JOIN packages P
+            ON U.id = P.senderId OR U.id = P.recipientId
+          GROUP BY U.id
+          ORDER BY packagesCount DESC
+        `);
+
+          return sendCsv(
+              res,
+              "raport_aktywnosc.csv",
+              "email,role,packagesCount",
+              rows.map(r => [
+                r.email,
+                r.role,
+                r.packagesCount
+              ])
+          );
+        }
+
+        // NIEZNANY TYP
+        return res.status(400).json({ error: "Unknown report type" });
+
+      } catch (err) {
+        console.error("REPORT ERROR:", err);
+        res.status(500).json({ error: "Failed to generate report" });
+      }
+    }
+);
+
+// ---------------- ADMIN: BLOCK LOCKER ----------------
+app.post(
+    "/api/admin/lockers/block",
+    auth,
+    requireRole("admin"),
+    async (req, res) => {
+        const { id } = req.body || {};
+        const lockerId = Number(id);
+        if (!lockerId) return res.status(400).json({ error: "Missing locker id" });
+
+        const locker = await db.get(
+            "SELECT status FROM lockers WHERE id=?",
+            [lockerId]
+        );
+        if (!locker) return res.status(404).json({ error: "Locker not found" });
+
+        if (["occupied", "reserved"].includes(locker.status)) {
+            return res.status(400).json({
+                error: "Nie można zablokować zajętej lub zarezerwowanej skrytki",
+            });
+        }
+
+        if (locker.status === "broken") {
+            return res.status(400).json({
+                error: "Skrytka jest uszkodzona – napraw ją najpierw",
+            });
+        }
+
+        await db.run(
+            `UPDATE lockers
+             SET status='blocked',
+                 lastAction='adminBlock',
+                 updatedAt=datetime('now')
+             WHERE id=?`,
+            [lockerId]
+        );
+
+        res.json({ ok: true, message: "Skrytka zablokowana" });
+    }
+);
+
+// ---------------- ADMIN: UNBLOCK LOCKER ----------------
+app.post(
+    "/api/admin/lockers/unblock",
+    auth,
+    requireRole("admin"),
+    async (req, res) => {
+        const { id } = req.body || {};
+        const lockerId = Number(id);
+        if (!lockerId) return res.status(400).json({ error: "Missing locker id" });
+
+        const locker = await db.get(
+            "SELECT status FROM lockers WHERE id=?",
+            [lockerId]
+        );
+        if (!locker) return res.status(404).json({ error: "Locker not found" });
+
+        if (locker.status !== "blocked") {
+            return res.status(400).json({
+                error: "Skrytka nie jest zablokowana",
+            });
+        }
+
+        await db.run(
+            `UPDATE lockers
+       SET status='free',
+           lastAction='adminUnblock',
+           updatedAt=datetime('now')
+       WHERE id=?`,
+            [lockerId]
+        );
+
+        res.json({ ok: true, message: "Skrytka odblokowana" });
+    }
+);
+
+// ---------------- ADMIN: DELETE LOCKER ----------------
+app.delete(
+    "/api/admin/lockers/:id",
+    auth,
+    requireRole("admin"),
+    async (req, res) => {
+        const lockerId = Number(req.params.id);
+
+        if (!lockerId) {
+            return res.status(400).json({ error: "Invalid locker id" });
+        }
+
+        const locker = await db.get(
+            "SELECT status FROM lockers WHERE id=?",
+            [lockerId]
+        );
+
+        if (!locker) {
+            return res.status(404).json({ error: "Locker not found" });
+        }
+
+        if (locker.status !== "free") {
+            return res.status(409).json({
+                error: "Można usunąć tylko wolną skrytkę",
+            });
+        }
+
+        await db.run("DELETE FROM lockers WHERE id=?", [lockerId]);
+
+        res.json({
+            ok: true,
+            message: `Skrytka ${lockerId} została usunięta`,
+        });
+    }
+);
+
+// ---------------- ADMIN: ADD LOCKER ----------------
+app.post(
+    "/api/admin/lockers",
+    auth,
+    requireRole("admin"),
+    async (req, res) => {
+        const { groupId } = req.body || {};
+        const gId = Number(groupId);
+
+        if (!gId) {
+            return res.status(400).json({ error: "Missing groupId" });
+        }
+
+        const group = await db.get(
+            "SELECT id FROM locker_groups WHERE id=?",
+            [gId]
+        );
+
+        if (!group) {
+            return res.status(404).json({ error: "Locker group not found" });
+        }
+
+        const result = await db.run(
+            `
+      INSERT INTO lockers (groupId, status, updatedAt)
+      VALUES (?, 'free', datetime('now'))
+      `,
+            [gId]
+        );
+
+        res.json({
+            ok: true,
+            lockerId: result.lastID,
+            message: `Dodano skrytkę ${result.lastID}`,
+        });
+    }
+);
 
 // ---------------- LOCKER GROUPS ----------------
 app.get("/api/lockerGroups", auth, async (req, res) => {
@@ -391,7 +902,6 @@ app.post("/api/lockers/open", auth, requireRole("user"), async (req, res) => {
   const expiresAtSql = `datetime('now', '+${RESERVATION_MINUTES} minutes')`;
 
   try {
-    // Atomic reservation: update exactly one free locker and return it
     const row = await db.get(
         `
       UPDATE lockers
@@ -448,7 +958,6 @@ app.post("/api/lockers/cancel", auth, requireRole("user"), async (req, res) => {
       [id, req.user.id]
   );
 
-  // If no changes, either it wasn't reserved or not yours → still return ok to keep UX simple
   res.json({ ok: true, changed: result.changes });
 });
 
@@ -477,7 +986,6 @@ app.post("/api/lockers/send", auth, requireRole("user"), async (req, res) => {
     const recipient = await db.get("SELECT id FROM users WHERE email = ?", [recipientEmail.trim()]);
     if (!recipient) return res.status(404).json({ error: "Recipient not found" });
 
-    // Verify locker is reserved by this user and not expired
     const locker = await db.get(
         `
       SELECT *
@@ -495,10 +1003,8 @@ app.post("/api/lockers/send", auth, requireRole("user"), async (req, res) => {
 
     const pkgId = "PKG-" + Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    // Transaction: occupy locker + create package
     await db.exec("BEGIN;");
     try {
-      // Occupy the physical locker (origin)
       await db.run(
           `
         UPDATE lockers
@@ -514,7 +1020,6 @@ app.post("/api/lockers/send", auth, requireRole("user"), async (req, res) => {
           [lId, req.user.id]
       );
 
-      // Create package in "created" state sitting in this locker
       await db.run(
           `
         INSERT INTO packages (
@@ -595,13 +1100,65 @@ app.get("/api/user/pending", auth, requireRole("user"), async (req, res) => {
   }
 });
 
+// ---------------- USER: PACKAGES IN TRANSIT ----------------
+app.get("/api/packages/my", auth, requireRole("user"), async (req, res) => {
+  try {
+    const sent = await db.all(
+        `
+          SELECT *
+          FROM packages
+          WHERE senderId = ?
+            AND status NOT IN ('received', 'cancelled')
+          ORDER BY updatedAt DESC
+        `,
+        [req.user.id]
+    );
+
+    const incoming = await db.all(
+        `
+          SELECT *
+          FROM packages
+          WHERE recipientId = ?
+            AND status NOT IN ('received', 'cancelled')
+          ORDER BY updatedAt DESC
+        `,
+        [req.user.id]
+    );
+
+    res.json({ ok: true, sent, incoming });
+  } catch (err) {
+    console.error("MY PACKAGES ERROR:", err);
+    res.status(500).json({ error: "Failed to load packages" });
+  }
+});
+
+// ---------------- USER: PACKAGES HISTORY ----------------
+app.get("/api/packages/history", auth, requireRole("user"), async (req, res) => {
+  try {
+    const rows = await db.all(
+        `
+      SELECT *
+      FROM packages
+      WHERE (senderId = ? OR recipientId = ?)
+        AND status IN ('received', 'cancelled')
+      ORDER BY updatedAt DESC
+      `,
+        [req.user.id, req.user.id]
+    );
+
+    res.json({ ok: true, packages: rows });
+  } catch (err) {
+    console.error("PACKAGES HISTORY ERROR:", err);
+    res.status(500).json({ error: "Failed to load history" });
+  }
+});
+
 // ---------------- COURIER: STATUS OVERVIEW ----------------
 app.post("/api/courier/statusByGroup", auth, requireRole("courier"), async (req, res) => {
   const { groupId } = req.body || {};
   const gId = Number(groupId);
   if (!gId) return res.status(400).json({ error: "Missing groupId" });
 
-  // Packages ready to pickup: created + in an occupied locker in this group
   const pickupReady = await db.all(
       `
     SELECT P.packageId, P.packageName, P.destinationGroupId, P.currentLockerId
@@ -615,7 +1172,6 @@ app.post("/api/courier/statusByGroup", auth, requireRole("courier"), async (req,
       [gId]
   );
 
-  // Packages to deliver: inTransit and destination = this group
   const toDeliver = await db.all(
       `
     SELECT packageId, packageName, destinationGroupId
@@ -672,27 +1228,40 @@ app.post("/api/courier/open", auth, requireRole("courier"), async (req, res) => 
   });
 });
 
+// ---------------- COURIER: DELIVERY OPEN ----------------
 app.post("/api/courier/delivery/open", auth, requireRole("courier"), async (req, res) => {
-    const { groupId } = req.body;
+    const { groupId } = req.body || {};
     const gId = Number(groupId);
-    if (!gId) return res.status(400).json({ error: "Missing groupId" });
+    if (!gId) {
+        return res.status(400).json({ error: "Missing groupId" });
+    }
 
-    // Paczki w drodze do tego paczkomatu
     const packages = await db.all(
-        `SELECT id FROM packages
-     WHERE status='inTransit' AND destinationGroupId=?`,
-        [gId]
+        `
+            SELECT id
+            FROM packages
+            WHERE status = 'inTransit'
+              AND destinationGroupId = ?
+              AND courierId = ?
+        `,
+        [gId, req.user.id]
     );
 
     if (packages.length === 0) {
-        return res.status(404).json({ error: "No packages to deliver to this locker group" });
+        return res.status(403).json({
+            error: "You have no packages to deliver to this locker group"
+        });
     }
 
-    // Wolne skrytki w tym paczkomacie
+    // wolne skrytki
     const freeLockers = await db.all(
-        `SELECT id FROM lockers
-     WHERE groupId=? AND status='free'
-     ORDER BY id ASC`,
+        `
+            SELECT id
+            FROM lockers
+            WHERE groupId = ?
+              AND status = 'free'
+            ORDER BY id ASC
+        `,
         [gId]
     );
 
@@ -702,17 +1271,27 @@ app.post("/api/courier/delivery/open", auth, requireRole("courier"), async (req,
 
     const used = freeLockers.slice(0, packages.length);
 
-    // Rezerwujemy skrytki
-    for (const l of used) {
-        await db.run(
-            `UPDATE lockers
-       SET status='reserved',
-           openedBy=?,
-           lastAction='deliveryOpen',
-           updatedAt=datetime('now')
-       WHERE id=?`,
-            [req.user.id, l.id]
-        );
+    await db.exec("BEGIN;");
+    try {
+        for (const l of used) {
+            await db.run(
+                `
+                UPDATE lockers
+                SET status = 'reserved',
+                    openedBy = ?,
+                    lastAction = 'deliveryOpen',
+                    updatedAt = datetime('now')
+                WHERE id = ?
+                  AND status = 'free'
+                `,
+                [req.user.id, l.id]
+            );
+        }
+
+        await db.exec("COMMIT;");
+    } catch (e) {
+        await db.exec("ROLLBACK;");
+        return res.status(500).json({ error: e.message });
     }
 
     res.json({
@@ -722,46 +1301,50 @@ app.post("/api/courier/delivery/open", auth, requireRole("courier"), async (req,
     });
 });
 
+
+
 // ---------------- COURIER: PICKUP ----------------
 app.post("/api/lockers/pickup", auth, requireRole("courier"), async (req, res) => {
-  const { groupId } = req.body || {};
-  const gId = Number(groupId);
-  if (!gId) return res.status(400).json({ error: "Missing groupId" });
+    const { groupId } = req.body || {};
+    const gId = Number(groupId);
+    if (!gId) return res.status(400).json({ error: "Missing groupId" });
 
-  // Find all created packages physically in occupied lockers at this group
-  const pkgs = await db.all(
-      `
-    SELECT P.id AS packageRowId, P.packageId, P.currentLockerId
+    const pkgs = await db.all(
+        `
+    SELECT P.id AS packageRowId, P.currentLockerId
     FROM packages P
     JOIN lockers L ON L.id = P.currentLockerId
     WHERE P.status='created'
       AND L.groupId=?
       AND L.status='occupied'
     `,
-      [gId]
-  );
+        [gId]
+    );
 
-  if (pkgs.length === 0) {
-    return res.status(404).json({ error: "No outgoing packages ready here" });
-  }
+    if (pkgs.length === 0) {
+        return res.status(404).json({ error: "No outgoing packages ready here" });
+    }
 
-  await db.exec("BEGIN;");
-  try {
-    // Mark packages in transit + free their lockers (physical lockers become free after pickup)
-    for (const p of pkgs) {
-      await db.run(
-          `
+    await db.exec("BEGIN;");
+    try {
+        for (const p of pkgs) {
+            const result = await db.run(
+                `
         UPDATE packages
         SET status='inTransit',
             currentLockerId=NULL,
+            courierId=?,
             updatedAt=?
         WHERE id=?
+          AND courierId IS NULL
         `,
-          [nowIso(), p.packageRowId]
-      );
+                [req.user.id, nowIso(), p.packageRowId]
+            );
 
-      await db.run(
-          `
+            if (result.changes === 0) continue;
+
+            await db.run(
+                `
         UPDATE lockers
         SET status='free',
             openedBy=?,
@@ -769,20 +1352,20 @@ app.post("/api/lockers/pickup", auth, requireRole("courier"), async (req, res) =
             updatedAt=datetime('now')
         WHERE id=?
         `,
-          [req.user.id, p.currentLockerId]
-      );
+                [req.user.id, p.currentLockerId]
+            );
+        }
+
+        await db.exec("COMMIT;");
+    } catch (e) {
+        await db.exec("ROLLBACK;");
+        return res.status(500).json({ error: e.message });
     }
 
-    await db.exec("COMMIT;");
-  } catch (e) {
-    await db.exec("ROLLBACK;");
-    throw e;
-  }
-
-  res.json({
-    ok: true,
-    message: `Picked up ${pkgs.length} packages from locker group ${gId}`,
-  });
+    res.json({
+        ok: true,
+        message: `Picked up ${pkgs.length} packages from locker group ${gId}`,
+    });
 });
 
 // ---------------- COURIER: DELIVER ----------------
@@ -792,20 +1375,32 @@ app.post("/api/lockers/deliver", auth, requireRole("courier"), async (req, res) 
     if (!destId) return res.status(400).json({ error: "Missing toGroupId" });
 
     const packages = await db.all(
-        `SELECT id FROM packages
-         WHERE status='inTransit' AND destinationGroupId=?
-         ORDER BY updatedAt ASC`,
-        [destId]
+        `
+            SELECT id
+            FROM packages
+            WHERE status='inTransit'
+              AND destinationGroupId=?
+              AND courierId=?
+            ORDER BY updatedAt ASC
+        `,
+        [destId, req.user.id]
     );
 
     if (packages.length === 0) {
-        return res.status(404).json({ error: "No packages to deliver" });
+        return res.status(403).json({
+            error: "No packages assigned to this courier for this locker group",
+        });
     }
 
     const reservedLockers = await db.all(
-        `SELECT id FROM lockers
-     WHERE groupId=? AND status='reserved' AND lastAction='deliveryOpen'
-     ORDER BY id ASC`,
+        `
+    SELECT id
+    FROM lockers
+    WHERE groupId=?
+      AND status='reserved'
+      AND lastAction='deliveryOpen'
+    ORDER BY id ASC
+    `,
         [destId]
     );
 
@@ -820,21 +1415,26 @@ app.post("/api/lockers/deliver", auth, requireRole("courier"), async (req, res) 
             const locker = reservedLockers[i];
 
             await db.run(
-                `UPDATE lockers
-                 SET status='occupied',
-                     lastAction='delivery',
-                     updatedAt=datetime('now')
-                 WHERE id=?`,
+                `
+        UPDATE lockers
+        SET status='occupied',
+            lastAction='delivery',
+            updatedAt=datetime('now')
+        WHERE id=?
+        `,
                 [locker.id]
             );
 
             await db.run(
-                `UPDATE packages
-                 SET status='delivered',
-                     currentLockerId=?,
-                     updatedAt=?
-                 WHERE id=?`,
-                [locker.id, nowIso(), pkg.id]
+                `
+        UPDATE packages
+        SET status='delivered',
+            currentLockerId=?,
+            updatedAt=?
+        WHERE id=?
+          AND courierId=?
+        `,
+                [locker.id, nowIso(), pkg.id, req.user.id]
             );
         }
 
@@ -846,14 +1446,12 @@ app.post("/api/lockers/deliver", auth, requireRole("courier"), async (req, res) 
 
     res.json({
         ok: true,
-        message: `Delivered ${packages.length} packages`
+        message: `Delivered ${packages.length} packages`,
     });
 });
 
-
 // ---------------- USER: RECEIVE ----------------
 app.post("/api/lockers/receive", auth, requireRole("user"), async (req, res) => {
-  // Find earliest delivered package for user
   const pkg = await db.get(
       `
     SELECT id, packageId, currentLockerId
@@ -871,7 +1469,6 @@ app.post("/api/lockers/receive", auth, requireRole("user"), async (req, res) => 
 
   await db.exec("BEGIN;");
   try {
-    // Free the locker
     await db.run(
         `
       UPDATE lockers
@@ -885,7 +1482,6 @@ app.post("/api/lockers/receive", auth, requireRole("user"), async (req, res) => 
         [req.user.id, pkg.currentLockerId]
     );
 
-    // Mark package received
     await db.run(
         `
       UPDATE packages
@@ -906,35 +1502,226 @@ app.post("/api/lockers/receive", auth, requireRole("user"), async (req, res) => 
   res.json({ ok: true, message: `Package ${pkg.packageId} picked up` });
 });
 
-// ---------------- SERVICE: BROKEN ----------------
+/// ---------------- SERVICE: MARK BROKEN ----------------
 app.post("/api/lockers/broken", auth, requireRole("service"), async (req, res) => {
-  const { id } = req.body || {};
-  const lockerId = Number(id);
-  if (!lockerId) return res.status(400).json({ error: "Missing id" });
+    const { id } = req.body || {};
+    const lockerId = Number(id);
+    if (!lockerId) return res.status(400).json({ error: "Missing id" });
 
-  // Optional safety: don't break occupied locker
-  const locker = await db.get("SELECT status FROM lockers WHERE id=?", [lockerId]);
-  if (!locker) return res.status(404).json({ error: "Locker not found" });
-  if (locker.status === "occupied" || locker.status === "reserved") {
-    return res.status(400).json({ error: "Cannot mark occupied/reserved locker as broken" });
-  }
+    const locker = await db.get(
+        "SELECT status FROM lockers WHERE id=?",
+        [lockerId]
+    );
+    if (!locker) return res.status(404).json({ error: "Locker not found" });
 
-  await db.run(
-      `UPDATE lockers SET status='broken', updatedAt=datetime('now'), lastAction='broken' WHERE id=?`,
-      [lockerId]
-  );
-  res.json({ ok: true, message: `Locker ${lockerId} marked as broken` });
+    if (locker.status !== "free") {
+        return res.status(400).json({
+            error: "Tylko wolną skrytkę można oznaczyć jako uszkodzoną",
+        });
+    }
+
+    await db.run(
+        `UPDATE lockers
+         SET status='broken',
+             lastAction='serviceBroken',
+             updatedAt=datetime('now')
+         WHERE id=?`,
+        [lockerId]
+    );
+
+    res.json({ ok: true, message: "Skrytka oznaczona jako uszkodzona" });
 });
 
 // ---------------- SERVICE: REPAIRED ----------------
-app.post("/api/lockers/repaired", auth, requireRole("service"), async (req, res) => {
-  const { id } = req.body || {};
-  const lockerId = Number(id);
-  if (!lockerId) return res.status(400).json({ error: "Missing id" });
+app.post(
+    "/api/lockers/repaired",
+    auth,
+    requireRole("service"),
+    async (req, res) => {
+        const { id } = req.body || {};
+        const lockerId = Number(id);
+        if (!lockerId) return res.status(400).json({ error: "Missing id" });
 
-  await db.run(
-      `UPDATE lockers SET status='free', updatedAt=datetime('now'), lastAction='repaired' WHERE id=?`,
-      [lockerId]
-  );
-  res.json({ ok: true, message: `Locker ${lockerId} repaired and set to free` });
+        const locker = await db.get(
+            "SELECT status FROM lockers WHERE id=?",
+            [lockerId]
+        );
+        if (!locker) return res.status(404).json({ error: "Locker not found" });
+
+        if (locker.status !== "broken") {
+            return res.status(400).json({
+                error: "Można naprawić tylko uszkodzoną skrytkę",
+            });
+        }
+
+        await db.run(
+            `UPDATE lockers
+             SET status='free',
+                 lastAction='serviceRepaired',
+                 updatedAt=datetime('now')
+             WHERE id=?`,
+            [lockerId]
+        );
+
+        res.json({ ok: true, message: "Skrytka naprawiona" });
+    }
+);
+
+// ---------------- SERVICE: FORCE OPEN ----------------
+app.post(
+    "/api/lockers/force-open",
+    auth,
+    requireRole("service"),
+    async (req, res) => {
+        const { id } = req.body || {};
+        const lockerId = Number(id);
+        if (!lockerId) return res.status(400).json({ error: "Missing locker id" });
+
+        const locker = await db.get(
+            "SELECT status FROM lockers WHERE id=?",
+            [lockerId]
+        );
+        if (!locker) return res.status(404).json({ error: "Locker not found" });
+
+        if (!["occupied", "reserved"].includes(locker.status)) {
+            return res.status(400).json({
+                error: "Tylko zajętą lub zarezerwowaną skrytkę można otworzyć awaryjnie",
+            });
+        }
+
+        await db.run(
+            `UPDATE lockers
+             SET status='open',
+                 reservedBy=NULL,
+                 reservationExpiresAt=NULL,
+                 openedBy=?,
+                 lastAction='serviceOpen',
+                 updatedAt=datetime('now')
+             WHERE id=?`,
+            [req.user.id, lockerId]
+        );
+
+        res.json({ ok: true, message: "Skrytka otwarta awaryjnie" });
+    }
+);
+
+
+// ---------------- SERVICE: OPEN ALL FREE LOCKERS ----------------
+app.post(
+    "/api/lockers/force-open-all",
+    auth,
+    requireRole("service"),
+    async (req, res) => {
+      const { groupId } = req.body || {};
+      const gId = Number(groupId);
+
+      if (!gId) {
+        return res.status(400).json({ error: "Missing groupId" });
+      }
+
+      const result = await db.run(
+          `UPDATE lockers
+           SET status='open',
+               openedBy=?,
+               lastAction='serviceOpenAll',
+               updatedAt=datetime('now')
+           WHERE groupId=?
+             AND status='free'`,
+          [req.user.id, gId]
+      );
+
+      res.json({
+        ok: true,
+        opened: result.changes,
+        message: `Otwarto ${result.changes} wolnych skrytek`,
+      });
+    }
+);
+
+// ---------------- SERVICE: CLOSE ----------------
+app.post("/api/lockers/close", auth, requireRole("service"), async (req, res) => {
+    const { id } = req.body || {};
+    const lockerId = Number(id);
+    if (!lockerId) return res.status(400).json({ error: "Missing locker id" });
+
+    const locker = await db.get(
+        "SELECT status FROM lockers WHERE id=?",
+        [lockerId]
+    );
+    if (!locker) return res.status(404).json({ error: "Locker not found" });
+
+    if (locker.status !== "open") {
+        return res.status(400).json({ error: "Locker is not open" });
+    }
+
+    await db.run(
+        `UPDATE lockers
+     SET status='free',
+         lastAction='serviceClose',
+         updatedAt=datetime('now')
+     WHERE id=?`,
+        [lockerId]
+    );
+
+    res.json({ ok: true, message: "Skrytka zamknięta" });
 });
+
+// ---------------- ADMIN: GET ALL USERS ----------------
+app.get("/api/admin/users/all", auth, requireRole("admin"), async (req, res) => {
+    try {
+        const users = await db.all(
+            "SELECT id, email, role FROM users ORDER BY id ASC"
+        );
+
+        res.json({ ok: true, users });
+    } catch (err) {
+        console.error("GET ALL USERS ERROR:", err);
+        res.status(500).json({ error: "Failed to load users" });
+    }
+});
+
+// ---------------- ADMIN: CREATE STAFF USER ----------------
+app.post(
+    "/api/admin/create-user",
+    auth,
+    requireRole("admin"),
+    async (req, res) => {
+        const { email, password, role } = req.body || {};
+
+        if (!email || !password || !role) {
+            return res.status(400).json({ error: "Brak danych" });
+        }
+
+        if (!["courier", "service"].includes(role)) {
+            return res.status(400).json({ error: "Nieprawidłowa rola" });
+        }
+
+        if (password.length < 5) {
+            return res.status(400).json({ error: "Hasło min. 5 znaków" });
+        }
+
+        try {
+            const hashed = await bcrypt.hash(password, 10);
+
+            await db.run(
+                `
+                INSERT INTO users (email, password, role)
+                VALUES (?, ?, ?)
+                `,
+                [email.toLowerCase(), hashed, role]
+            );
+
+            res.json({ ok: true });
+        } catch (err) {
+            if (err.message.includes("UNIQUE")) {
+                return res.status(400).json({ error: "Email już istnieje" });
+            }
+
+            console.error("CREATE STAFF ERROR:", err);
+            res.status(500).json({ error: "Nie udało się utworzyć konta" });
+        }
+    }
+);
+
+
+

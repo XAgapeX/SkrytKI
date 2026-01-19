@@ -47,7 +47,6 @@ export default function CourierDelivery() {
         setStep("deliver");
         setShowModal(true);
 
-        // normalna animacja (otwarte pudełko)
         setTimeout(() => {
             if (lottieRef.current) {
                 lottieRef.current.setDirection(1);

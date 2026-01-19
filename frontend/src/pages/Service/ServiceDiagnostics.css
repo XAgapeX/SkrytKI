@@ -1,0 +1,161 @@
+.service-diagnostics {
+    padding: 20px;
+}
+
+/*KARTY*/
+.diag-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 6px 16px rgba(10, 71, 169, 0.06);
+}
+
+.diag-card h3 {
+    margin-bottom: 16px;
+}
+
+/*GRID PODSUMOWANIA*/
+.diag-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.diag-tile {
+    background: #f6f8fb;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+}
+
+/*KROPKA STATUSU*/
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin: 0 auto 6px;
+}
+
+/*TABELA*/
+.diag-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+
+/*NAGŁÓWEK TABELI*/
+.diag-table thead th {
+    background: #0a47a9;
+    color: #ffffff;
+    font-weight: 700;
+    padding: 12px;
+    text-align: center;
+    font-size: 13px;
+}
+
+.diag-table thead th:first-child {
+    border-top-left-radius: 8px;
+}
+
+.diag-table thead th:last-child {
+    border-top-right-radius: 8px;
+}
+
+/*KOMÓRKI*/
+.diag-table td {
+    padding: 12px;
+    text-align: center;
+    font-size: 14px;
+    color: #222;
+}
+
+/*WIERSZE*/
+.diag-table tbody tr {
+    border-bottom: 1px solid #eef2f7;
+    transition: background 0.2s ease;
+}
+
+.diag-table tbody tr:hover {
+    background: #f4f7ff;
+}
+
+.diag-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+/*STATUS BADGE*/
+.status {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/*STATUSY*/
+.status--free {
+    background: #e6f0ff;
+    color: #0a47a9;
+}
+
+.status--open {
+    background: #e8f4ff;
+    color: #0277bd;
+}
+
+.status--reserved {
+    background: #ede7ff;
+    color: #5b3fd6;
+}
+
+.status--occupied {
+    background: #fff4e5;
+    color: #c77700;
+}
+
+.status--broken {
+    background: #fdeaea;
+    color: #c62828;
+}
+
+/*STATUS OK*/
+.ok {
+    color: #1a8f4a;
+    font-weight: bold;
+}
+
+/*MEDIA – TABLET*/
+@media (max-width: 900px) {
+    .diag-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+
+    .diag-table td,
+    .diag-table th {
+        padding: 10px;
+        font-size: 13px;
+    }
+}
+
+/*MEDIA – MOBILE*/
+@media (max-width: 600px) {
+    .service-diagnostics {
+        padding: 12px;
+    }
+
+    .diag-card {
+        padding: 12px;
+    }
+
+    .diag-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .status {
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+}

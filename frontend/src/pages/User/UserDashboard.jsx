@@ -13,7 +13,6 @@ export default function UserDashboard() {
 
     return (
         <div className="ud-grid">
-            {/* GÓRNY RZĄD */}
             <button
                 className="ud-tile ud-tile--big"
                 type="button"
@@ -41,7 +40,6 @@ export default function UserDashboard() {
                 <img className="ud-icon" src={nadajeIcon} alt="Send" />
             </button>
 
-            {/* DOLNY RZĄD – NOWE KAFELKI */}
             <button
                 className="ud-tile ud-tile--big"
                 type="button"

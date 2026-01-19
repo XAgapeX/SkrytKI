@@ -171,6 +171,11 @@ export default function Send() {
         <div className="send-page">
             <div className="send-content">
                 <div className="send-left">
+                    <h3>Nadaj paczkę</h3>
+
+                    <div className={`send-error ${error ? "visible" : ""}`}>
+                        {error || ""}
+                    </div>
                     <input
                         className="field"
                         placeholder="Nazwa paczki"
@@ -226,10 +231,6 @@ export default function Send() {
                     <button className="primary-btn" onClick={handleOpenLocker}>
                         OTWÓRZ SKRYTKĘ
                     </button>
-
-                    <div className={`send-error ${error ? "visible" : ""}`}>
-                        {error || ""}
-                    </div>
                 </div>
 
                 <div className="send-right">

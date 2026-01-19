@@ -1,7 +1,7 @@
 /* SIATKA KAFELKÓW SERWISANTA */
 .sd-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(220px, 1fr));
+    grid-template-columns: repeat(2, minmax(320px, 1fr));
     gap: 28px 40px;
     padding: 24px 0;
 }
@@ -38,14 +38,6 @@
     width: 120px;
     height: 120px;
     object-fit: contain;
-}
-
-/* MAŁY KAFEL */
-.sd-tile--small {
-    height: 78px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 /* USUNIĘCIE FOCUS / ACTIVE DLA KAFELKÓW */

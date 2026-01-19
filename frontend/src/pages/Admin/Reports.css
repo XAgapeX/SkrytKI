@@ -37,14 +37,6 @@
     text-transform: uppercase;
 }
 
-/* IKONA KAFELKA */
-.ad-icon {
-    width: 120px;
-    height: 120px;
-    object-fit: contain;
-    pointer-events: none;
-}
-
 /* USUNIĘCIE FOCUS / ACTIVE */
 .ad-tile:focus,
 .ad-tile:focus-visible,

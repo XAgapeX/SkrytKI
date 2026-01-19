@@ -17,25 +17,42 @@ export default function Register() {
     const [acceptPrivacy, setAcceptPrivacy] = useState(false);
     const [marketing, setMarketing] = useState(false);
 
-    const [msg, setMsg] = useState("");
+    const [info, setInfo] = useState("");
     const navigate = useNavigate();
 
     async function handleSubmit(e) {
         e.preventDefault();
-        setMsg("");
+        setInfo("");
+
+        if (
+            !firstName.trim() ||
+            !lastName.trim() ||
+            !email.trim() ||
+            !password ||
+            !password2 ||
+            !phone.trim()
+        ) {
+            setInfo("Uzupełnij wszystkie pola");
+            return;
+        }
+
+        if (password.length < 8) {
+            setInfo("Hasło musi mieć co najmniej 8 znaków");
+            return;
+        }
 
         if (password !== password2) {
-            setMsg("Hasła nie są takie same");
+            setInfo("Hasła muszą być takie same");
             return;
         }
 
         if (!acceptTerms || !acceptPrivacy) {
-            setMsg("Musisz zaakceptować regulamin i politykę prywatności");
+            setInfo("Musisz zaakceptować regulamin i politykę prywatności");
             return;
         }
 
         if (!email.toLowerCase().endsWith("@skrytki.pl")) {
-            setMsg("Email musi kończyć się na @skrytki.pl");
+            setInfo("Email musi kończyć się na @skrytki.pl");
             return;
         }
 
@@ -54,10 +71,10 @@ export default function Register() {
             if (res.data.ok) {
                 navigate("/register-success");
             } else {
-                setMsg("Błąd rejestracji");
+                setInfo("Błąd rejestracji");
             }
         } catch (err) {
-            setMsg(err.response?.data?.error || "Registration failed");
+            setInfo(err.response?.data?.error || "Registration failed");
         }
     }
 
@@ -67,72 +84,81 @@ export default function Register() {
 
             <main className="register-main">
                 <section className="register-left">
-                    <img src={logo} alt="SkrytKI logo" className="register-biglogo" />
+                    <img
+                        src={logo}
+                        alt="SkrytKI logo"
+                        className="register-biglogo"
+                    />
                     <div className="register-brand">SkrytKI</div>
                 </section>
 
                 <section className="register-right">
-                    <form className="register-card" onSubmit={handleSubmit}>
+                    <form
+                        className="register-card"
+                        onSubmit={handleSubmit}
+                        noValidate
+                    >
                         <h2 className="register-title">REJESTRACJA</h2>
 
                         <input
                             className="field"
-                            value={firstName}
                             placeholder="Imię"
+                            value={firstName}
                             onChange={(e) => setFirstName(e.target.value)}
                         />
 
                         <input
                             className="field"
-                            value={lastName}
                             placeholder="Nazwisko"
+                            value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
                         />
 
                         <input
                             className="field"
-                            value={email}
                             placeholder="Email (@skrytki.pl)"
+                            value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            required
                         />
 
                         <input
                             className="field"
                             type="password"
-                            value={password}
                             placeholder="Hasło"
+                            value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            required
                         />
 
                         <input
                             className="field"
                             type="password"
-                            value={password2}
                             placeholder="Potwierdź hasło"
+                            value={password2}
                             onChange={(e) => setPassword2(e.target.value)}
-                            required
                         />
 
                         <input
                             className="field"
-                            value={phone}
                             placeholder="Numer telefonu"
+                            value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                         />
 
-                        {/* CHECKBOXY */}
                         <div className="checkbox-group">
                             <label className="checkbox-label">
                                 <input
                                     type="checkbox"
                                     checked={acceptTerms}
-                                    onChange={(e) => setAcceptTerms(e.target.checked)}
-                                    required
+                                    onChange={(e) =>
+                                        setAcceptTerms(e.target.checked)
+                                    }
                                 />
                                 Akceptuję{" "}
-                                <a href="/regulamin" target="_blank" rel="noreferrer">
+                                <a
+                                    href="/regulamin"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
                                     regulamin
                                 </a>
                             </label>
@@ -141,8 +167,9 @@ export default function Register() {
                                 <input
                                     type="checkbox"
                                     checked={acceptPrivacy}
-                                    onChange={(e) => setAcceptPrivacy(e.target.checked)}
-                                    required
+                                    onChange={(e) =>
+                                        setAcceptPrivacy(e.target.checked)
+                                    }
                                 />
                                 Akceptuję{" "}
                                 <a
@@ -158,10 +185,11 @@ export default function Register() {
                                 <input
                                     type="checkbox"
                                     checked={marketing}
-                                    onChange={(e) => setMarketing(e.target.checked)}
+                                    onChange={(e) =>
+                                        setMarketing(e.target.checked)
+                                    }
                                 />
-                                Wyrażam zgodę na otrzymywanie informacji marketingowych
-                                (opcjonalnie)
+                                Zgoda marketingowa (opcjonalnie)
                             </label>
                         </div>
 
@@ -169,7 +197,7 @@ export default function Register() {
                             ZAREJESTRUJ
                         </button>
 
-                        {msg && <p className="msg">{msg}</p>}
+                        {info && <p className="password-hint">{info}</p>}
                     </form>
                 </section>
             </main>

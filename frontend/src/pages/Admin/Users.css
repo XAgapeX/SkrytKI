@@ -1,0 +1,190 @@
+/* LAYOUT */
+.users-layout {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: flex-start;
+}
+
+/* LEFT COLUMN */
+.users-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding-right: 56px;
+    text-align: center;
+}
+
+/* RIGHT COLUMN */
+.users-right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-left: 56px;
+    min-width: 0;
+}
+
+.users-left > * {
+    width: 100%;
+    max-width: 420px;
+}
+
+/* ERROR */
+.users-error {
+    font-size: 14px;
+    text-align: center;
+    color: #0a47a9;
+}
+
+/* CARD */
+.users-card {
+    position: relative;
+    padding: 16px;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 6px 16px rgba(10, 71, 169, 0.06);
+}
+
+/* CLOSE X */
+.users-card__close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+
+    width: 28px;
+    height: 28px;
+
+    border: none;
+    background: none;
+
+    color: #0a47a9;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+
+    cursor: pointer;
+}
+
+/* DIVIDER */
+.users-divider {
+    border: none;
+    border-top: 1px solid #eef2f7;
+    margin: 24px 0;
+}
+
+/* DELETE REQUEST CARD */
+.delete-request {
+    width: 100%;
+    border: 1px solid #eef2f7;
+    border-radius: 12px;
+    padding: 16px;
+    background: #f9fbff;
+    font-size: 14px;
+}
+
+/* DELETE ACTIONS */
+.delete-actions {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 18px;
+}
+
+.delete-actions button {
+    height: 44px;
+    min-width: 140px;
+    padding: 0 24px;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+}
+
+/* VARIANTS */
+.delete-actions .btn-danger {
+    background: #0a47a9;
+    color: #ffffff;
+}
+
+.delete-actions .btn-secondary {
+    background: #e6f0ff;
+    color: #0a47a9;
+}
+
+/* USERS TABLE */
+.users-table {
+    width: 100%;
+    max-width: 1000px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(10, 71, 169, 0.06);
+}
+
+.users-table__header,
+.users-table__row {
+    display: grid;
+    grid-template-columns: 60px 1fr 120px 120px;
+    align-items: center;
+    justify-items: center;
+    gap: 12px;
+}
+
+.users-table__header {
+    background: #0a47a9;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 12px;
+    border-radius: 8px 8px 0 0;
+}
+
+.users-table__row {
+    padding: 12px;
+    font-size: 14px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.users-table__row:hover {
+    background: #f4f7ff;
+}
+
+/* STATUS */
+.status {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.status--admin {
+    background: #ede7ff;
+    color: #5b3fd6;
+}
+
+.status--user {
+    background: #e6f0ff;
+    color: #0a47a9;
+}
+
+.status--courier,
+.status--service {
+    background: #ffe6f2;
+    color: #b3005e;
+}
+
+/* MOBILE */
+@media (max-width: 900px) {
+    .users-layout {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .users-left,
+    .users-right {
+        padding: 0;
+    }
+}
