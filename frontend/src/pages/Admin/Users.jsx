@@ -58,17 +58,15 @@ export default function Users() {
 
             const data = await res.json();
             if (res.ok) setUsers(data.users || []);
-        } catch {
-            // brak komunikatu
         } finally {
             setLoadingUsers(false);
         }
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (userId) => {
         try {
             const res = await fetch(
-                `http://localhost:3001/api/admin/users/${id}`,
+                `http://localhost:3001/api/admin/users/${userId}`,
                 {
                     method: "DELETE",
                     headers: { Authorization: `Bearer ${token}` },
@@ -77,11 +75,11 @@ export default function Users() {
 
             if (!res.ok) return;
 
+            clearSelectedUser();
             loadUsers();
             loadDeleteRequests();
-            clearSelectedUser();
         } catch {
-            // brak komunikatu
+            // opcjonalnie toast
         }
     };
 
@@ -97,17 +95,15 @@ export default function Users() {
 
             const data = await res.json();
             if (res.ok) setDeleteRequests(data.requests || []);
-        } catch {
-            // brak komunikatu
         } finally {
             setLoadingRequests(false);
         }
     };
 
-    const rejectRequest = async (id) => {
+    const rejectRequest = async (requestId) => {
         try {
             await fetch(
-                `http://localhost:3001/api/admin/delete-requests/${id}/reject`,
+                `http://localhost:3001/api/admin/delete-requests/${requestId}/reject`,
                 {
                     method: "POST",
                     headers: { Authorization: `Bearer ${token}` },
@@ -115,7 +111,7 @@ export default function Users() {
             );
             loadDeleteRequests();
         } catch {
-            // brak komunikatu
+            // opcjonalnie toast
         }
     };
 
@@ -148,7 +144,6 @@ export default function Users() {
                         <button
                             className="users-card__close"
                             onClick={clearSelectedUser}
-                            aria-label="Zamknij"
                         >
                             ×
                         </button>
@@ -175,13 +170,19 @@ export default function Users() {
                     deleteRequests.map((r) => (
                         <div key={r.id} className="delete-request">
                             <p><strong>Email:</strong> {r.email}</p>
-                            <p><strong>Data:</strong> {new Date(r.createdAt).toLocaleString()}</p>
-                            {r.reason && <p><strong>Powód:</strong> {r.reason}</p>}
+                            <p>
+                                <strong>Data:</strong>{" "}
+                                {new Date(r.createdAt).toLocaleString()}
+                            </p>
+                            {r.reason && (
+                                <p><strong>Powód:</strong> {r.reason}</p>
+                            )}
 
                             <div className="delete-actions">
+                                {/* 🔴 TU BYŁ BUG */}
                                 <button
                                     className="btn-danger"
-                                    onClick={() => handleDelete(r.id)}
+                                    onClick={() => handleDelete(r.userId)}
                                 >
                                     Usuń konto
                                 </button>
@@ -208,7 +209,7 @@ export default function Users() {
                         <div>Akcje</div>
                     </div>
 
-                    {loadingUsers && <p className="table-loading">Ładowanie...</p>}
+                    {loadingUsers && <p>Ładowanie...</p>}
 
                     {!loadingUsers &&
                         users.map((u) => (

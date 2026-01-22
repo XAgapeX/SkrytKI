@@ -75,7 +75,14 @@ export default function Send() {
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.error || "Nie udało się otworzyć skrytki");
+                if (
+                    res.status === 404 &&
+                    data.error === "Recipient not found"
+                ) {
+                    setError("Użytkownik nie istnieje");
+                } else {
+                    setError(data.error || "Rezerwacja wygasła");
+                }
                 return;
             }
 
@@ -253,9 +260,31 @@ export default function Send() {
                         {!sendSuccess ? (
                             <>
                                 <h2>Włóż paczkę</h2>
-                                <p>Skrytka nr {lockerId}</p>
-                                {expiresAt && <p>Rezerwacja do: {expiresAt}</p>}
 
+                                {error && (
+                                    <div className="send-error visible">
+                                        {error}
+                                    </div>
+                                )}
+
+                                <p>Skrytka nr {lockerId}</p>
+                                {expiresAt && (
+                                    <p>
+                                        Rezerwacja do:{" "}
+                                        {new Date(
+                                            /Z$|[+-]\d{2}:\d{2}$/.test(expiresAt)
+                                                ? expiresAt
+                                                : `${expiresAt.replace(" ", "T")}Z`
+                                        ).toLocaleString("pl-PL", {
+                                            year: "numeric",
+                                            month: "2-digit",
+                                            day: "2-digit",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                            second: "2-digit",
+                                        })}
+                                    </p>
+                                )}
                                 <button
                                     className="primary-btn"
                                     onClick={handleSend}

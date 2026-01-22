@@ -50,7 +50,9 @@
 /* ERROR */
 .send-error {
     min-height: 8px;
-    width: min(420px, 92vw);
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
     font-size: 14px;
     text-align: center;
     color: #0a47a9;
@@ -58,6 +60,7 @@
     transform: translateY(-4px);
     transition: opacity 0.2s ease, transform 0.2s ease;
 }
+
 
 .send-error.visible {
     opacity: 1;

@@ -984,7 +984,7 @@ app.post("/api/lockers/send", auth, requireRole("user"), async (req, res) => {
     }
 
     const recipient = await db.get("SELECT id FROM users WHERE email = ?", [recipientEmail.trim()]);
-    if (!recipient) return res.status(404).json({ error: "Recipient not found" });
+    if (!recipient) return res.status(404).json({ error: "Uzytkownik nie istnieje" });
 
     const locker = await db.get(
         `
