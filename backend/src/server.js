@@ -53,14 +53,21 @@ async function cleanupExpiredReservations() {
   await db.exec("PRAGMA busy_timeout = 5000;");
 
   // --- USERS ---
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      role TEXT DEFAULT 'user'
-    );
-  `);
+await db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT DEFAULT 'user',
+    firstName TEXT,
+    lastName TEXT,
+    phone TEXT,
+    acceptTerms INTEGER DEFAULT 0,
+    acceptPrivacy INTEGER DEFAULT 0,
+    marketing INTEGER DEFAULT 0,
+    createdAt TEXT
+  );
+`);
 
     // --- DELETE ACCOUNT REQUESTS ---
     await db.exec(`
@@ -85,46 +92,54 @@ async function cleanupExpiredReservations() {
     );
   `);
 
-  // --- LOCKERS (PHYSICAL) ---
-  // status: free | reserved | occupied | broken
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS lockers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      groupId INTEGER NOT NULL,
-      status TEXT DEFAULT 'free',
-      reservedBy INTEGER,
-      reservationExpiresAt TEXT,
-      openedBy INTEGER,
-      lastAction TEXT,
-      updatedAt TEXT,
-      FOREIGN KEY (groupId) REFERENCES locker_groups(id),
-      FOREIGN KEY (reservedBy) REFERENCES users(id),
-      FOREIGN KEY (openedBy) REFERENCES users(id)
-    );
-  `);
+// --- LOCKERS (PHYSICAL) ---
+// status: free | occupied | broken | inTransit
+await db.exec(`
+  CREATE TABLE IF NOT EXISTS lockers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    groupId INTEGER,
+    status TEXT DEFAULT 'free',
+    packageId TEXT,
+    assignedTo INTEGER,
+    openedBy INTEGER,
+    destinationGroupId INTEGER,
+    lastAction TEXT,
+    updatedAt TEXT,
+    packageName TEXT,
+    reservedBy INTEGER,
+    reservationExpiresAt TEXT,
+    FOREIGN KEY (groupId) REFERENCES locker_groups(id),
+    FOREIGN KEY (assignedTo) REFERENCES users(id),
+    FOREIGN KEY (openedBy) REFERENCES users(id),
+    FOREIGN KEY (destinationGroupId) REFERENCES locker_groups(id),
+    FOREIGN KEY (reservedBy) REFERENCES users(id)
+  );
+`);
 
-  // --- PACKAGES (LOGICAL SHIPMENTS) ---
-  // status: created | inTransit | delivered | received | cancelled
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS packages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      packageId TEXT UNIQUE NOT NULL,
-      packageName TEXT,
-      senderId INTEGER NOT NULL,
-      recipientId INTEGER NOT NULL,
-      originGroupId INTEGER NOT NULL,
-      destinationGroupId INTEGER NOT NULL,
-      status TEXT NOT NULL,
-      currentLockerId INTEGER,        -- locker holding the package (when created/delivered)
-      createdAt TEXT NOT NULL,
-      updatedAt TEXT NOT NULL,
-      FOREIGN KEY (senderId) REFERENCES users(id),
-      FOREIGN KEY (recipientId) REFERENCES users(id),
-      FOREIGN KEY (originGroupId) REFERENCES locker_groups(id),
-      FOREIGN KEY (destinationGroupId) REFERENCES locker_groups(id),
-      FOREIGN KEY (currentLockerId) REFERENCES lockers(id)
-    );
-  `);
+// --- PACKAGES (LOGICAL SHIPMENTS) ---
+// status: created | inTransit | delivered | received | cancelled
+await db.exec(`
+  CREATE TABLE IF NOT EXISTS packages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    packageId TEXT UNIQUE NOT NULL,
+    packageName TEXT,
+    senderId INTEGER NOT NULL,
+    recipientId INTEGER NOT NULL,
+    originGroupId INTEGER NOT NULL,
+    destinationGroupId INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    currentLockerId INTEGER,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    courierId INTEGER,
+    FOREIGN KEY (senderId) REFERENCES users(id),
+    FOREIGN KEY (recipientId) REFERENCES users(id),
+    FOREIGN KEY (originGroupId) REFERENCES locker_groups(id),
+    FOREIGN KEY (destinationGroupId) REFERENCES locker_groups(id),
+    FOREIGN KEY (currentLockerId) REFERENCES lockers(id),
+    FOREIGN KEY (courierId) REFERENCES users(id)
+  );
+`);
 
   // --- MIGRATIONS / COMPAT: If you had older DB with extra columns, ignore.
   // We intentionally remodeled, so we don't try to keep old "lockers.packageId" etc.
